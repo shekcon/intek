@@ -116,7 +116,7 @@ def wait_maze():
     return stdin.readline()
 
 
-def breadth_first_search(player, path):
+def breadth_first_search(player, path=[], enemy=[]):
     global track_maze
     track_maze.empty_track()
     track_maze.mark(player)
@@ -134,7 +134,20 @@ def breadth_first_search(player, path):
             # flag == True then found destination
             if flag:
                 path = deque(back_track_path(destination, child_parent, player))
+                if enemy and check_smart_path(path, enemy):
+                    path.clear()
+
+
     return path
+
+
+def check_smart_path(path, enemy):
+    path = list(path)
+    for player in enemy:
+        if player[-1] == path[-1] and len(player) > len(path):
+            return True
+    return False
+            
 
 
 def is_other_player(pos):
@@ -149,23 +162,30 @@ def debug(data):
     stderr.write("%s\n\n" % (data))
 
 
-def get_letter_other_player(player_mine):
-    global ascii_uppercase
-    index = ascii_uppercase.index(player_mine)
-    letter_enemy = ascii_uppercase[:index] + ascii_uppercase[index+1:]
-    return letter_enemy[:len(all_location_in_maze(letter_enemy))]
+#  def get_letter_other_player(player_mine):
+#      global ascii_uppercase
+#      index = ascii_uppercase.index(player_mine)
+#      letter_enemy = ascii_uppercase[:index] + ascii_uppercase[index+1:]
+#      return letter_enemy[:len(all_location_in_maze(letter_enemy))]
 
 
 def found_enemy(player_mine):
     # found pos of other player
     global enemy
-    global player
+    #  global player
     global other_player
-    if not other_player:
-        other_player = get_letter_other_player(player_mine)
-    enemy = {player:location_player(player) for player in other_player}
-    save_debug(player_mine +" :" +str(player)  + " enemy:"+ str(enemy))
-    return list(enemy.values())
+    #  if not other_player:
+    other_player = ""
+    #  enemy = {player:location_player(player) for player in other_player}
+    #  save_debug(player_mine +" :" +str(player)  + " enemy:"+ str(enemy))
+    global ascii_uppercase
+    index = ascii_uppercase.index(player_mine)
+    letter_enemy = ascii_uppercase[:index] + ascii_uppercase[index+1:]
+    location_enemy = all_location_in_maze(letter_enemy)
+    for pos in location_enemy:
+        other_player += get_value(pos)
+    save_debug(str(player_mine)+ " enemy"+str(other_player)+" "+ str(location_enemy))
+    return location_enemy
 
 def check_resources():
     global resources
@@ -231,13 +251,15 @@ def main():
             all_other_player = found_enemy(player_character)
             # resource changed clear path find path again
             check_resources()
+            # found path enemy
+            #  if path:
+            #      enemy_path.clear()
+            #      for letter_player in all_other_player:
+            #          enemy_path.append(breadth_first_search(letter_player))
+            #      # save_debug(enemy_path)
             # found path if dont have ?
             path = breadth_first_search(player, path)
-            # if path:
-            #     enemy_path.clear()
-            #     for letter_player in all_other_player:
-            #         enemy_path.append(breadth_first_search(letter_player, []))
-            #     save_debug(enemy_path)
+            
 
             # get location move
             move_player = path.popleft()
