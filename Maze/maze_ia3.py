@@ -231,7 +231,7 @@ def main():
     global path
     global player
     global track_maze
-    enemy_path = []
+    # enemy_path = []
     command = wait_maze()
     # use communication with virtual machine
     while command != "":
@@ -248,7 +248,7 @@ def main():
             track_maze = Track(maze)
             # get location player
             player = location_player(player_character)
-            all_other_player = found_enemy(player_character)
+            # all_other_player = found_enemy(player_character)
             # resource changed clear path find path again
             check_resources()
             # found path enemy
