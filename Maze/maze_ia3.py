@@ -154,7 +154,7 @@ def is_other_player(pos):
     global maze
     global other_player
     value = get_value(pos)
-    return value in other_player
+    return value in ascii_uppercase
 
 
 def debug(data):
