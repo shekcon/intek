@@ -30,7 +30,7 @@ direction = {
 
 
 def save_debug(data):
-    system("echo \"%s\" >> debug" % (data))
+    system("echo \"%s\" >> debug.txt" % (data))
 
 
 def get_value(pos):
