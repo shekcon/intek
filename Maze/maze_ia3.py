@@ -157,7 +157,7 @@ def is_other_player(pos):
     global maze
     global other_player
     value = get_value(pos)
-    return value in ascii_uppercase
+    return value in other_player
 
 
 def debug(data):
@@ -218,13 +218,38 @@ def update_resources():
     resources = all_location_in_maze("o!")
 
 
+def get_path_enemy(all_other_player):
+    enemy_path = []
+    if not path:
+        enemy_path.clear()
+        # found path each enemy
+        for letter_player in all_other_player:
+            enemy_path.append(breadth_first_search(letter_player))
+    return enemy_path
+
+
+def is_valid_move(move_player):
+    global track_maze
+    global path
+    if is_other_player(move_player):
+        # delete pathing move
+        path.clear()
+        track_maze.empty_track()
+        # found again valid move at player
+        player_choices, _, _ = valid_move(player)
+        # random choice from valid move not have another player
+        move_player = choice(player_choices)
+        while is_other_player(move_player) or len(player_choices) == 1:
+            move_player = choice(player_choices)
+    return move_player
+
+
 def main():
     # define variable global use
     global maze
     global path
     global player
     global track_maze
-    enemy_path = []
     command = wait_maze()
     # use communication with virtual machine
     while command != "":
@@ -239,32 +264,18 @@ def main():
             update_maze()
             # create object tracking map
             track_maze = Track(maze)
-            # get location player
             player = location_player(player_character)
             all_other_player = found_enemy(player_character)
             # resource changed clear path find path again
             check_resources()
             # found path enemy
-            if not path:
-                enemy_path.clear()
-                # found path each enemy
-                for letter_player in all_other_player:
-                    enemy_path.append(breadth_first_search(letter_player))
+            enemy_path = get_path_enemy(all_other_player)
             # found path if dont have ?
             path = breadth_first_search(player, path, enemy_path)
             # get location move
             move_player = path.popleft()
             # direction move is another player
-            if is_other_player(move_player):
-                # delete pathing move
-                path.clear()
-                track_maze.empty_track()
-                # found again valid move at player
-                player_choices, _, _ = valid_move(player)
-                # random choice from valid move not have another player
-                move_player = choice(player_choices)
-                while is_other_player(move_player) or len(player_choices) == 1:
-                    move_player = choice(player_choices)
+            move_player = is_valid_move(move_player)
             # return direction move
             return_maze(direction[get_direction(move_player)])
         command = wait_maze()
