@@ -4,8 +4,7 @@ from random import choice
 from string import ascii_uppercase
 from collections import deque
 from parent import Track
-from time import sleep
-from os import system
+# from os import system
 
 
 resources = []
@@ -25,8 +24,8 @@ direction = {
 }
 
 
-def save_debug(data):
-    system("echo \"%s\" >> debug.txt" % (data))
+# def save_debug(data):
+#     system("echo \"%s\" >> debug.txt" % (data))
 
 
 def get_value(pos):
@@ -66,13 +65,6 @@ def valid_move(location):
     return child, flag, destination
 
 
-def mark_parent(valids, parent, child_parent):
-    for child in valids:
-        # add mapping between child and parent
-        child_parent[child] = parent
-    return child_parent
-
-
 def location_player(letter):
     global maze
     return all_location_in_maze(letter)[0]
@@ -86,7 +78,8 @@ def back_track_path(destination, parents, player_pos):
         path.append(pos)
         pos = parents[pos]
     # reverse path coz found end to start
-    return path[::-1]
+    path.reverse()
+    return path
 
 
 def get_direction(location):
@@ -127,7 +120,9 @@ def breadth_first_search(player, path=[], enemy=[]):
             # find valid move of top
             valids, flag, destination = valid_move(top)
             # store infomation top of valid move
-            child_parent = mark_parent(valids, top, child_parent)
+            for child in valids:
+                # add mapping between child and parent
+                child_parent[child] = top
             # add valid move into queue
             top_parent.append(valids)
             # flag == True then found destination
@@ -145,7 +140,6 @@ def breadth_first_search(player, path=[], enemy=[]):
 
 
 def check_smart_path(path, enemy):
-    path = list(path)
     # check is best path
     for player in enemy:
         if player[-1] == path[-1] and len(player) < len(path):
