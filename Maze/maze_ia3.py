@@ -22,10 +22,6 @@ direction = {
     (1, 0): "MOVE DOWN",  # down
     (0, -1): "MOVE LEFT",  # left
     (0, 1): "MOVE RIGHT"   # rightif path:
-            #     enemy_path.clear()
-            #     for letter_player in all_other_player:
-            #         enemy_path.append(breadth_first_search(letter_player, []))
-            #     save_debug(enemy_path)
 }
 
 
@@ -58,6 +54,7 @@ def valid_move(location):
             # found destination
             flag = True
             child.append(pos)
+            track_maze.mark(pos)
             destination = pos
             break
         # valid direction
@@ -118,10 +115,12 @@ def wait_maze():
 
 def breadth_first_search(player, path=[], enemy=[]):
     global track_maze
+    global resources
     track_maze.empty_track()
     track_maze.mark(player)
     child_parent = {}
     top_parent = deque([[player]])
+    count_time = 0
     while not path:
         parent = top_parent.popleft()
         for top in parent:
@@ -134,7 +133,8 @@ def breadth_first_search(player, path=[], enemy=[]):
             # flag == True then found destination
             if flag:
                 path = deque(back_track_path(destination, child_parent, player))
-                if enemy and check_smart_path(path, enemy):
+                count_time += 1
+                if enemy and check_smart_path(path, enemy) and len(resources) != count_time:
                     path.clear()
 
 
@@ -143,11 +143,13 @@ def breadth_first_search(player, path=[], enemy=[]):
 
 def check_smart_path(path, enemy):
     path = list(path)
+    # debug("running check smart path")
+    # save_debug(path)
     for player in enemy:
-        if player[-1] == path[-1] and len(player) > len(path):
+        if player[-1] == path[-1] and len(player) < len(path):
             return True
     return False
-            
+
 
 
 def is_other_player(pos):
@@ -184,7 +186,7 @@ def found_enemy(player_mine):
     location_enemy = all_location_in_maze(letter_enemy)
     for pos in location_enemy:
         other_player += get_value(pos)
-    save_debug(str(player_mine)+ " enemy"+str(other_player)+" "+ str(location_enemy))
+    # save_debug(str(player_mine)+ " enemy"+str(other_player)+" "+ str(location_enemy))
     return location_enemy
 
 def check_resources():
@@ -231,7 +233,7 @@ def main():
     global path
     global player
     global track_maze
-    # enemy_path = []
+    enemy_path = []
     command = wait_maze()
     # use communication with virtual machine
     while command != "":
@@ -248,18 +250,18 @@ def main():
             track_maze = Track(maze)
             # get location player
             player = location_player(player_character)
-            # all_other_player = found_enemy(player_character)
+            all_other_player = found_enemy(player_character)
             # resource changed clear path find path again
             check_resources()
             # found path enemy
-            #  if path:
-            #      enemy_path.clear()
-            #      for letter_player in all_other_player:
-            #          enemy_path.append(breadth_first_search(letter_player))
+            if path:
+                enemy_path.clear()
+                for letter_player in all_other_player:
+                    enemy_path.append(breadth_first_search(letter_player))
             #      # save_debug(enemy_path)
             # found path if dont have ?
-            path = breadth_first_search(player, path)
-            
+            path = breadth_first_search(player, path, enemy_path)
+
 
             # get location move
             move_player = path.popleft()
