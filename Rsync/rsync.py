@@ -87,10 +87,10 @@ def is_diff_mtime_size(des):
     return mtime != mtime_des or size_des != size_src
 
 
-def is_src_newer_des(des):
+def is_des_newer_src(des):
     global mtime
     mtime_des = os.stat(des).st_mtime
-    return mtime > mtime_des
+    return mtime < mtime_des
 
 
 def is_more_size_src(des):
@@ -216,7 +216,7 @@ if __name__ == "__main__":
                     #       + is diff mtime
                     #       + is diff size
                     # if diff: diff = True
-                    if (not (rsync.update and is_src_newer_des(des))
+                    if (not (rsync.update and is_des_newer_src(des))
                             and is_diff_mtime_size(des)):
                         diff = True
                 if diff:
