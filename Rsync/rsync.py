@@ -23,13 +23,10 @@ def handle_wel_args():
     name_src = rsync.src.split("/")[-1]
 
 
-def set_per_md5_size_src():
-    global per, md5_src, size_src
+def set_per_size_src():
+    global per, size_src
     size_src = os.stat(rsync.src).st_size
     per = os.stat(rsync.src).st_mode
-    data = open(rsync.src, 'rb').readlines()
-    result = [item.decode() for item in data]
-    md5_src = hashlib.md5("".join(result).encode()).hexdigest()
 
 
 def set_atime_mtime_src():
@@ -61,7 +58,9 @@ def handle_path(directory):
 
 
 def check_sum(des):
-    global md5_src
+    data = open(rsync.src, 'rb').readlines()
+    result = [item.decode() for item in data]
+    md5_src = hashlib.md5("".join(result).encode()).hexdigest()
     data = open(des, 'rb').readlines()
     result = [item.decode() for item in data]
     md5_des = hashlib.md5("".join(result).encode()).hexdigest()
@@ -100,19 +99,65 @@ def is_more_size_src(des):
     return size_des > size_src
 
 
-def copy_same_content_src(file):
+def rewrite_content_des(file):
     """
     parameter: path_file
-    copy content of source paste into destination
+    write all content of source into destination
+    return True if error
     """
     # open file
-    src = os.open(rsync.src, os.O_RDONLY)
-    des = os.open(file, os.O_CREAT | os.O_RDWR)
-    # read file
-    result = os.read(src, 100)
-    while result != b"":
-        os.write(des, result)
+    try:
+        src = os.open(rsync.src, os.O_RDONLY)
+        des = os.open(file, os.O_CREAT | os.O_RDWR)
+        # read file
         result = os.read(src, 100)
+        while result != b"":
+            os.write(des, result)
+            result = os.read(src, 100)
+        return False
+    except BaseException:
+        return True
+
+
+def write_diff_des(des, pos, content):
+    """
+    parameter: + des: file descriptor
+               + pos: location write
+               + content: data write
+    """
+    os.lseek(des, pos, 0)
+    os.write(des, str.encode(content))
+
+
+def update_diff_des(des):
+    """
+    find diff
+    send diff to des
+    add data missing from src
+    return True if error
+    """
+    try:
+        fd_des = os.open(des, os.O_RDWR)
+        fd_app_des = os.open(des, os.O_RDWR | os.O_APPEND)
+        add_more = ""
+        des = open(des, 'rb').readlines()
+        data_des = "".join([item.decode() for item in des])
+        src = open(rsync.src, "rb").readlines()
+        data_src = "".join([item.decode() for item in src])
+        # found diff from des
+        diff = {i:data_src[i] for i in range(len(data_des)) if data_des[i] != data_src[i]}
+        # get data write more on des
+        if len(data_src) > len(data_des):
+            add_more = data_src[len(data_des):]
+        # change diff from des
+        for key in diff.keys():
+            write_diff_des(fd_des, key, diff[key])
+        # if have data write at the end of des file
+        if add_more:
+            os.write(fd_app_des, str.encode(add_more))
+        return False
+    except BaseException:
+        return True
 
 
 if __name__ == "__main__":
@@ -128,7 +173,7 @@ if __name__ == "__main__":
         print("rsync: link_stat \"" + path + "/" + rsync.src +
               "\" failed: No such file or directory (2)")
     else:
-        set_per_md5_size_src()
+        set_per_size_src()
         set_atime_mtime_src()
         for des in rsync.dests:
             des = get_valid_name(des)
@@ -147,31 +192,44 @@ if __name__ == "__main__":
                     # create hardlink
                     try:
                         os.link(rsync.src, des)
-                    # handle error
                     except BaseException:
-                        path_des = os.path.split(des)[0]
-                        os.chmod(path_des, int("755", 8))
-                        os.link(rsync.src, des)
+                        # path_des = os.path.split(des)[0]
+                        # os.chmod(path_des, int("755", 8))
+                        # os.link(rsync.src, des)
+                        pass
             # handle file not exist
             elif not os.path.exists(des):
-                copy_same_content_src(des)
-            # handle check different
+                rewrite_content_des(des)
+            # handle file exist
             else:
-                flag = False
+                diff = False
+                error = False
                 # handle option checksum
-                if rsync.checksum:
-                    if not check_sum(des):
-                        flag = True
+                if rsync.checksum and not check_sum(des):
+                    diff = True
                 else:
-                    # handle option check newer
+                    # handle option check newer and check diff
+                    # run option check newer:
+                    #       + pass: skip check mtime & size
+                    #       + check diff normal
+                    # check diff normal:
+                    #       + is diff mtime
+                    #       + is diff size
+                    # if diff: diff = True
                     if (not (rsync.update and is_src_newer_des(des))
                             and is_diff_mtime_size(des)):
-                        flag = True
-                if flag:
-                    # handle size des biggest than src
+                        diff = True
+                if diff:
+                    # handle size des > src
                     # then rewrite des
                     if is_more_size_src(des):
                         os.unlink(des)
-                    copy_same_content_src(des)
+                        error = rewrite_content_des(des)
+                    else:
+                        error = update_diff_des(des)
+                # handle error when cann't read src
+                if error:
+                    print("rsync: send_files failed to open \"" +
+                          os.path.join(path, rsync.src) + "\": Permission denied (13)")
             # handle change per atime mtime
             change_per_atime_mtime(des)
