@@ -23,8 +23,9 @@ def handle_wel_args():
     name_src = rsync.src.split("/")[-1]
 
 
-def set_per_md5_src():
-    global per, md5_src
+def set_per_md5_size_src():
+    global per, md5_src, size_src
+    size_src = os.stat(rsync.src).st_size
     per = os.stat(rsync.src).st_mode
     data = open(rsync.src, 'rb').readlines()
     result = [item.decode() for item in data]
@@ -80,6 +81,19 @@ def get_valid_name(des):
     return des
 
 
+def is_diff_mtime_size(des):
+    global mtime, size_src
+    mtime_des = os.stat(des).st_mtime
+    size_des = os.stat(des).st_size
+    return mtime != mtime_des or size_des != size_src
+
+
+def is_src_newer_des(des):
+    global mtime
+    mtime_des = os.stat(des).st_mtime
+    return mtime > mtime_des
+
+
 def copy_same_content_src(file):
     """
     parameter: path_file
@@ -105,10 +119,10 @@ if __name__ == "__main__":
     if os.path.isdir(rsync.src):
         print("skipping directory .")
     elif not os.path.isfile(rsync.src):
-        print("rsync: \"" + path + "/" + rsync.src +
-              "\" failed: No such file or directory")
+        print("rsync: link_stat \"" + path + "/" + rsync.src +
+              "\" failed: No such file or directory (2)")
     else:
-        set_per_md5_src()
+        set_per_md5_size_src()
         set_atime_mtime_src()
         for des in rsync.dests:
             des = get_valid_name(des)
@@ -125,13 +139,26 @@ if __name__ == "__main__":
                                os.path.join(os.getcwd(), des))
                 else:
                     # create hardlink
-                    os.link(rsync.src, des)
+                    try:
+                        os.link(rsync.src, des)
+                    # handle error
+                    except BaseException:
+                        path_des = os.path.split(des)[0]
+                        os.chmod(path_des, int("755", 8))
+                        os.link(rsync.src, des)
             # handle file not exist
             elif not os.path.exists(des):
                 copy_same_content_src(des)
             # handle check different
             else:
-                if not check_sum(des):
-                    copy_same_content_src(des)
+                if rsync.checksum:
+                    if not check_sum(des):
+                        copy_same_content_src(des)
+                elif rsync.update:
+                    if not is_src_newer_des(des):
+                        copy_same_content_src(des)
+                else:
+                    if is_diff_mtime_size(des):
+                        copy_same_content_src(des)
             # handle change per atime mtime
             change_per_atime_mtime(des)
