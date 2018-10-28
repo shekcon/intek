@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 def handle_wel_args():
     global rsync, path, name_src
     rsync = ArgumentParser(prog="rsync",
-                           usage='./rsync.py [OPTIONS] SOURCE DESTINATION [...]')
+                           usage='./rsync.py [OPTIONS] SRC DES [DES...]')
     rsync.add_argument('src')
     rsync.add_argument('dests', metavar="dest", nargs="+")
     rsync.add_argument('-u', '--update',
@@ -50,7 +50,7 @@ def handle_path(directory):
     path = os.getcwd()
     count = 0
     while count < len(top):
-        path += "/" + top[count]
+        path = os.path.join(path, top[count])
         try:
             os.mkdir(path)
         except BaseException:
@@ -67,20 +67,24 @@ def check_sum(des):
     return md5_src == md5_des
 
 
+def get_valid_name(des):
+    """
+    parameter: file or directory
+    if dir:
+        join dir + name of source
+    return path
+    """
+    global name_src
+    if os.path.isdir(des) or des[-1] == "/":
+        des = os.path.join(des, name_src)
+    return des
+
+
 def copy_same_content_src(file):
     """
-    parameter: + file or directory
-    not file: create name's file as source
+    parameter: path_file
     copy content of source paste into destination
-    return path_file
     """
-    global name_src, path
-    # handle get path file if file is folder
-    if os.path.isdir(file) or file[-1] == "/":
-        if file[-1] == "/":
-            file = file + name_src
-        else:
-            file = file + "/" + name_src
     # open file
     src = os.open(rsync.src, os.O_RDONLY)
     des = os.open(file, os.O_CREAT | os.O_RDWR)
@@ -89,7 +93,6 @@ def copy_same_content_src(file):
     while result != b"":
         os.write(des, result)
         result = os.read(src, 100)
-    return file
 
 
 if __name__ == "__main__":
@@ -105,12 +108,30 @@ if __name__ == "__main__":
         print("rsync: \"" + path + "/" + rsync.src +
               "\" failed: No such file or directory")
     else:
+        set_per_md5_src()
+        set_atime_mtime_src()
         for des in rsync.dests:
-            if not os.path.isfile(des):
-                des = copy_same_content_src(des)
+            des = get_valid_name(des)
+            # handle src have symlink or hardlink
+            if (os.path.islink(rsync.src) or
+                    os.stat(rsync.src).st_nlink > 1):
+                # create link need file not exits
+                if os.path.exists(des):
+                    os.unlink(des)
+                if os.path.islink(rsync.src):
+                    link_src = os.readlink(rsync.src)
+                    # handle path directly of link src and des
+                    os.symlink(os.path.join(os.getcwd(), link_src),
+                               os.path.join(os.getcwd(), des))
+                else:
+                    # create hardlink
+                    os.link(rsync.src, des)
+            # handle file not exist
+            elif not os.path.exists(des):
+                copy_same_content_src(des)
+            # handle check different
             else:
-                set_per_md5_src()
                 if not check_sum(des):
                     copy_same_content_src(des)
-            set_atime_mtime_src()
+            # handle change per atime mtime
             change_per_atime_mtime(des)
