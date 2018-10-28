@@ -94,6 +94,12 @@ def is_src_newer_des(des):
     return mtime > mtime_des
 
 
+def is_more_size_src(des):
+    global size_src
+    size_des = os.stat(des).st_size
+    return size_des > size_src
+
+
 def copy_same_content_src(file):
     """
     parameter: path_file
@@ -151,14 +157,21 @@ if __name__ == "__main__":
                 copy_same_content_src(des)
             # handle check different
             else:
+                flag = False
+                # handle option checksum
                 if rsync.checksum:
                     if not check_sum(des):
-                        copy_same_content_src(des)
-                elif rsync.update:
-                    if not is_src_newer_des(des):
-                        copy_same_content_src(des)
+                        flag = True
                 else:
-                    if is_diff_mtime_size(des):
-                        copy_same_content_src(des)
+                    # handle option check newer
+                    if (not (rsync.update and is_src_newer_des(des))
+                            and is_diff_mtime_size(des)):
+                        flag = True
+                if flag:
+                    # handle size des biggest than src
+                    # then rewrite des
+                    if is_more_size_src(des):
+                        os.unlink(des)
+                    copy_same_content_src(des)
             # handle change per atime mtime
             change_per_atime_mtime(des)
