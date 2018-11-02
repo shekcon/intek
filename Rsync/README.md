@@ -66,66 +66,66 @@ Note: your implementation must behave like rsync does, except for hardlinks. By 
 Analyze the examples below to understand how the regular rsync works, and how your own version behaves by default.
 
 Of course you shouldn't limit yourself to those tests, do your own to understand how the -u and -c options work, as well as the symlinks and hardlinks!
+```bash
+$ ls -l
+total 8
+-rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
 
-    $ ls -l
-    total 8
-    -rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
+# let's see how rsync behaves by default
+$ rsync file1 dest_basic
+$ ls -l
+total 16
+-rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:44 dest_basic
+-rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
 
-    # let's see how rsync behaves by default
-    $ rsync file1 dest_basic
-    $ ls -l
-    total 16
-    -rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:44 dest_basic
-    -rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
+# let's see option -t
+$ rsync -t file1 dest_with_times
+$ ls -l
+total 24
+-rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:44 dest_basic
+-rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:17 dest_with_times
+-rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
 
-    # let's see option -t
-    $ rsync -t file1 dest_with_times
-    $ ls -l
-    total 24
-    -rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:44 dest_basic
-    -rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:17 dest_with_times
-    -rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
+# now let's see option -p
+$ rsync -p file1 dest_with_perms
+$ ls -l
+total 32
+-rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:44 dest_basic
+-rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:45 dest_with_perms
+-rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:17 dest_with_times
+-rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
 
-    # now let's see option -p
-    $ rsync -p file1 dest_with_perms
-    $ ls -l
-    total 32
-    -rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:44 dest_basic
-    -rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:45 dest_with_perms
-    -rwxr-xr-x  1 laurie  wheel  6 Oct 19 17:17 dest_with_times
-    -rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
+# now we see the default behavior of your program!
+$ ls -l
+total 88
+-rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
+-rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
+$ ./rsync.py file1 dest1
+$ ls -l
+total 96
+-rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 dest1
+-rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
+-rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
 
-    # now we see the default behavior of your program!
-    $ ls -l
-    total 88
-    -rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
-    -rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
-    $ ./rsync.py file1 dest1
-    $ ls -l
-    total 96
-    -rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 dest1
-    -rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
-    -rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
+# What if the destination is an existing directory?
+$ mkdir dir1
+$ ls -l
+total 88
+drwxr-xr-x  2 laurie  wheel     64 Oct 19 17:59 dir1
+-rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
+-rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
+$ ./rsync.py file1 dir1
+$ ls -lR
+total 88
+drwxr-xr-x  3 laurie  wheel     96 Oct 19 17:59 dir1
+-rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
+-rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
 
-    # What if the destination is an existing directory?
-    $ mkdir dir1
-    $ ls -l
-    total 88
-    drwxr-xr-x  2 laurie  wheel     64 Oct 19 17:59 dir1
-    -rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
-    -rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
-    $ ./rsync.py file1 dir1
-    $ ls -lR
-    total 88
-    drwxr-xr-x  3 laurie  wheel     96 Oct 19 17:59 dir1
-    -rwxr-xrwx  1 laurie  wheel      6 Oct 19 17:17 file1
-    -rwxr-xr-x  1 laurie  wheel  30148 Oct 19 17:55 rsync.py
-
-    ./dir1:
-    total 8
-    -rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
-    $
-
+./dir1:
+total 8
+-rwxr-xrwx  1 laurie  wheel  6 Oct 19 17:17 file1
+$
+```
 
 
 ## Allowed functions
@@ -166,66 +166,69 @@ For this bonus, you need to handle multiple files on the command line as well as
 
 ### Look at the example below and test it yourself!
 
-    $ ls -l
-    total 24
-    drwxr-xr-x  2 laurie  wheel  64 Oct 21 18:02 dir1
-    -rwxr-xrwx  1 laurie  wheel   6 Oct 19 17:17 file1
-    -rw-r--r--  1 laurie  wheel   9 Oct 21 18:01 file2
-    -rw-r--r--  1 laurie  wheel  13 Oct 21 18:01 file3
+```bash
+$ ls -l
+total 24
+drwxr-xr-x  2 laurie  wheel  64 Oct 21 18:02 dir1
+-rwxr-xrwx  1 laurie  wheel   6 Oct 19 17:17 file1
+-rw-r--r--  1 laurie  wheel   9 Oct 21 18:01 file2
+-rw-r--r--  1 laurie  wheel  13 Oct 21 18:01 file3
 
-    # multiple files on the command line with a directory as destination
-    $ rsync file1 file2 file3 dir1
-    $ ls -Rl
-    total 24
-    drwxr-xr-x  5 laurie  wheel  160 Oct 21 18:02 dir1
-    -rwxr-xrwx  1 laurie  wheel    6 Oct 19 17:17 file1
-    -rw-r--r--  1 laurie  wheel    9 Oct 21 18:01 file2
-    -rw-r--r--  1 laurie  wheel   13 Oct 21 18:01 file3
+#multiple files on the command line with a directory as destination
 
-    ./dir1:
-    total 24
-    -rwxr-xr-x  1 laurie  wheel   6 Oct 21 18:02 file1
-    -rw-r--r--  1 laurie  wheel   9 Oct 21 18:02 file2
-    -rw-r--r--  1 laurie  wheel  13 Oct 21 18:02 file3
-    $ mkdir dir2
-    $ ls -R
-    dir1	dir2	file1	file2	file3
+$ rsync file1 file2 file3 dir1
+$ ls -Rl
+total 24
+drwxr-xr-x  5 laurie  wheel  160 Oct 21 18:02 dir1
+-rwxr-xrwx  1 laurie  wheel    6 Oct 19 17:17 file1
+-rw-r--r--  1 laurie  wheel    9 Oct 21 18:01 file2
+-rw-r--r--  1 laurie  wheel   13 Oct 21 18:01 file3
 
-    ./dir1:
-    file1	file2	file3
+./dir1:
+total 24
+-rwxr-xr-x  1 laurie  wheel   6 Oct 21 18:02 file1
+-rw-r--r--  1 laurie  wheel   9 Oct 21 18:02 file2
+-rw-r--r--  1 laurie  wheel  13 Oct 21 18:02 file3
+$ mkdir dir2
+$ ls -R
+dir1	dir2	file1	file2	file3
 
-    ./dir2:
-        
-    # recursive copy of a directory
-    $ rsync -r dir1 dir2
-    $ ls -R
-    dir1	dir2	file1	file2	file3
+./dir1:
+file1	file2	file3
 
-    ./dir1:
-    file1	file2	file3
+./dir2:
+    
+# recursive copy of a directory
+$ rsync -r dir1 dir2
+$ ls -R
+dir1	dir2	file1	file2	file3
 
-    ./dir2:
-    dir1
+./dir1:
+file1	file2	file3
 
-    ./dir2/dir1:
-    file1	file2	file3
+./dir2:
+dir1
 
-    # your own version  will do the same
-    $ ls -R
-    dir1	file1	file2	file3    rsync.py
+./dir2/dir1:
+file1	file2	file3
 
-    ./dir1:
-    file1	file2	file3
-    $ ./rsync.py -r dir1 dir2
-    $ ls -R
-    dir1		dir2		file1		file2		file3		rsync.py
+# your own version  will do the same
+$ ls -R
+dir1	file1	file2	file3    rsync.py
 
-    ./dir1:
-    file1	file2	file3
+./dir1:
+file1	file2	file3
+$ ./rsync.py -r dir1 dir2
+$ ls -R
+dir1		dir2		file1		file2		file3		rsync.py
 
-    ./dir2:
-    dir1
+./dir1:
+file1	file2	file3
 
-    ./dir2/dir1:
-    file1	file2	file3
+./dir2:
+dir1
+
+./dir2/dir1:
+file1	file2	file3
+```
 
