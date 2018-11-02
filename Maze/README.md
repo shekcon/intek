@@ -24,71 +24,73 @@ There are two types of resources you can gather:
 Your IA must be in a file named maze_ia.py, at the root of your git repository.
 
 Note: your Python file must start with a shebang specifying Python as the interpreter. See the example below showing the first line of the IA.
-	
-	$ head -1 maze_ia.py
-	#!/usr/bin/env python3
-	
-	$ ./maze /path/to/maze_ia.py
-	####################
-	#                  #
-	#                  #
-	#                  #
-	#   o          o   #
-	#                 A#
-	#                o #
-	#                  #
-	#                  #
-	####################
-	A's turn at loop 1000 !
-	####################
-	#                  #
-	#                  #
-	#                  #
-	#   o          o   #
-	#                A #
-	#                o #
-	#                  #
-	#                  #
-	####################
-	A's turn at loop 999 !
-	####################
-	#                  #
-	#                  #
-	#                  #
-	#   o          o   #
-	#                  #
-	#                A #
-	#                  #
-	#                  #
-	####################
-	A's turn at loop 998 !
-	
-	< this goes on for 996 turns... >
-	
-	A's turn at loop 2 !
-	####################
-	#                  #
-	#                  #
-	#              A   #
-	#              o   #
-	#                  #
-	#                  #
-	#                  #
-	#              oo  #
-	####################
-	A's turn at loop 1 !
-	####################
-	#                  #
-	#                  #
-	#             o    #
-	#              A   #
-	#                  #
-	#                  #
-	#                  #
-	#              oo  #
-	####################
-	A: 144
-	$
+
+```bash
+$ head -1 maze_ia.py
+#!/usr/bin/env python3
+
+$ ./maze /path/to/maze_ia.py
+####################
+#                  #
+#                  #
+#                  #
+#   o          o   #
+#                 A#
+#                o #
+#                  #
+#                  #
+####################
+A's turn at loop 1000 !
+####################
+#                  #
+#                  #
+#                  #
+#   o          o   #
+#                A #
+#                o #
+#                  #
+#                  #
+####################
+A's turn at loop 999 !
+####################
+#                  #
+#                  #
+#                  #
+#   o          o   #
+#                  #
+#                A #
+#                  #
+#                  #
+####################
+A's turn at loop 998 !
+
+< this goes on for 996 turns... >
+
+A's turn at loop 2 !
+####################
+#                  #
+#                  #
+#              A   #
+#              o   #
+#                  #
+#                  #
+#                  #
+#              oo  #
+####################
+A's turn at loop 1 !
+####################
+#                  #
+#                  #
+#             o    #
+#              A   #
+#                  #
+#                  #
+#                  #
+#              oo  #
+####################
+A: 144
+$
+```
 
 ## The virtual machine
 
