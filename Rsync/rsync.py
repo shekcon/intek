@@ -10,8 +10,8 @@ def handle_wel_args():
     global rsync, path
     rsync = ArgumentParser(prog="rsync",
                            usage='./rsync.py [OPTIONS] SRC [SRC...] DES')
-    rsync.add_argument('src')
-    rsync.add_argument('dests', metavar="dest", nargs="+")
+    rsync.add_argument('srcs',  nargs="+", help="source files")
+    rsync.add_argument('dest', help="destination to copy file or multi files")
     rsync.add_argument('-u', '--update',
                        help="update",
                        action="store_true")
@@ -267,24 +267,23 @@ def handle_recursive(dest, src):
 if __name__ == "__main__":
     handle_wel_args()
     # handle destination and source
-    srcs = [rsync.src] + rsync.dests[:len(rsync.dests)-1]
-    dest = rsync.dests[-1]
+    dest = rsync.dest
     # path destination invalid --> create path
     if not os.path.exists(dest):
         # handle with many source
         # if destination not exits --> make it directory
-        if len(srcs) > 1 and dest[-1] != "/":
+        if len(rsync.srcs) > 1 and dest[-1] != "/":
             handle_path(dest + "/")
         else:
             handle_path(dest)
     # handle source more than 1 file or directory
     # destination need to be directory
     # if not specific --> create destination is directory
-    if (len(srcs) > 1 or rsync.recursive) and os.path.isfile(dest):
+    if (len(rsync.srcs) > 1 or rsync.recursive) and os.path.isfile(dest):
         print("ERROR: destination must be a directory\
  when copying more than 1 file")
     else:
-        for src in srcs:
+        for src in rsync.srcs:
             if not rsync.recursive and os.path.isdir(src):
                 print("skipping directory .")
             elif not rsync.recursive and not os.path.isfile(src):
