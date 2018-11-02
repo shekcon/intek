@@ -29,10 +29,10 @@ What your program will do, in its core part, is take two files as arguments, che
 
 There are several aspects to this project: 
 
-    understanding the rsync utility and what you can do with it 
-    understanding the longest common subsequence problem
-    getting familiar with the Linux filesystem
-    being able to use advanced I/O functions
+- Understanding the rsync utility and what you can do with it 
+- Understanding the longest common subsequence problem
+- Getting familiar with the Linux filesystem
+- Being able to use advanced I/O functions
 
 All those aspects will play a part in the project review.
 
