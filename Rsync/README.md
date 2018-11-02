@@ -42,18 +42,18 @@ Your program must be called rsync.py and be present at the root of your git repo
 
 It must respect the following rules:
 
-    It will copy a file from source to destination, both files must be strictly identical
-    The destination file will have the same permissions as the source file (equivalent to option -p of rsync, which becomes the default behavior)
-    The destination file will have the same access/modification times as the source file (equivalent to option -t of rsync, which becomes the default behavior)
-    You will keep symlinks and hardlinks (equivalent to options -l and -H of rsync, which become the default behavior)
-    You will only copy the parts that are different between the source file and the destination file (if they are already identical, nothing should be written!)
+- It will copy a file from source to destination, both files must be strictly identical
+- The destination file will have the same permissions as the source file (equivalent to option -p of rsync, which becomes the default behavior)
+- The destination file will have the same access/modification times as the source file (equivalent to option -t of rsync, which becomes the default behavior)
+- You will keep symlinks and hardlinks (equivalent to options -l and -H of rsync, which become the default behavior)
+- You will only copy the parts that are different between the source file and the destination file (if they are already identical, nothing should be written!)
 
 By default, your program will decide if the destination file needs to be updated by checking the size & modification time (like rsync does).
 
 To be able to change that default behavior, you will implement the following options:
 
-    -u
-    -c
+- -u
+- -c
 
 Usage of your program: ./rsync.py [OPTIONS] SRC_FILE DESTINATION
 
@@ -130,16 +130,16 @@ Of course you shouldn't limit yourself to those tests, do your own to understand
 
 ## Allowed functions
 
-    argparse module
-    os.path module
-    os.difflib module
-    os.open, os.read, os.write, os.sendfile, os.lseek
-    os.mkdir
-    os.stat module
-    os.symlink, os.link, os.readlink
-    os.scandir
-    os.unlink
-    os.utime, os.chmod
+- argparse module
+- os.path module
+- os.difflib module
+- os.open, os.read, os.write, os.sendfile, os.lseek
+- os.mkdir
+- os.stat module
+- os.symlink, os.link, os.readlink
+- os.scandir
+- os.unlink
+- os.utime, os.chmod
 
 Any function or module that is not explicitly allowed is forbidden for the core part. If you think another module or function is absolutely necessary, ask the mentors.
 
