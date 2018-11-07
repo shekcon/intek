@@ -42,26 +42,42 @@ def change_per_atime_mtime(file, per, atime, mtime):
     os.utime(file, (atime, mtime))
 
 
-def handle_path(directory):
+def handle_path(directory, mode=1):
+    """
+    param: directory path of file or directory
+    param: mode: - 1 is only create head of path
+                 - 0 create all path
+    """
     # handle get path
-    top = os.path.split(directory)[0].split('/')[::-1]
-    path = ""
-    # create directory from top ==> bottom
-    while top:
-        path = os.path.join(path, top.pop())
-        if path != "" and not os.path.exists(path):
-            os.mkdir(path)
+    if mode:
+        top = os.path.split(directory)[0]
+    else:
+        top = directory
+    if top and not os.path.exists(top):
+        top = top.split('/')[::-1]
+        path = ""
+        # create directory from top ==> bottom
+        while top:
+            path = os.path.join(path, top.pop())
+            if path and not os.path.exists(path):
+                os.mkdir(path)
 
 
-def check_sum(src, des, size_src):
-    size_des = os.stat(des).st_size
-    des = os.open(des, os.O_RDONLY)
-    md5_des = hashlib.md5(os.read(des, size_des)).hexdigest()
-    src = os.open(src, os.O_RDONLY)
-    md5_src = hashlib.md5(os.read(src, size_src)).hexdigest()
-    os.close(des)
-    os.close(src)
-    return md5_src == md5_des
+def check_sum(dest, src, size_src):
+    try:
+        des = os.open(dest, os.O_RDONLY)
+    except PermissionError:
+        os.unlink(dest)
+        rewrite_content_des(dest, src)
+    else:
+        size_des = os.stat(dest).st_size
+        md5_des = hashlib.md5(os.read(des, size_des)).hexdigest()
+        src = os.open(src, os.O_RDONLY)
+        md5_src = hashlib.md5(os.read(src, size_src)).hexdigest()
+        os.close(des)
+        os.close(src)
+        return md5_src == md5_des
+    return True
 
 
 def get_valid_name(des, name_src):
@@ -230,9 +246,10 @@ def main(des, src):
                   "\": Permission denied (13)")
 
 
-def get_files_src(src):
+def get_files_dirs_src(src):
     dir_src = [src]
     file_src = []
+    dirs_src = []
     # find all path of file in src
     while dir_src:
         # take directory from src
@@ -244,11 +261,18 @@ def get_files_src(src):
             # store directory in data_dir
             if item.is_dir():
                 dir_src.append(item.path)
-    return file_src
+                dirs_src.append(item.path)
+    return file_src, dirs_src
 
 
 def handle_recursive(dest, src):
-    files_src = get_files_src(src)
+    files_src, dirs_src = get_files_dirs_src(src)
+    # copy directory from source
+    for direc in dirs_src:
+        if src[-1] == '/':
+            # remove directory top of path
+            direc = direc[direc.index("/") + 1:]
+        handle_path(os.path.join(dest, direc), mode=0)
     # rsync all files in source
     for file in files_src:
         # if the end of src is "/" then only copy content of directory
@@ -257,9 +281,6 @@ def handle_recursive(dest, src):
             des_new = os.path.join(dest, content_src)
         else:
             des_new = os.path.join(dest, file)
-        # create path for destination if dont have
-        if not os.path.exists(des_new):
-            handle_path(des_new)
         # rsync destination
         main(des_new, file)
 
@@ -286,7 +307,7 @@ if __name__ == "__main__":
         for src in rsync.srcs:
             if not rsync.recursive and os.path.isdir(src):
                 print("skipping directory .")
-            elif not rsync.recursive and not os.path.isfile(src):
+            elif not os.path.exists(src):
                 print("rsync: link_stat \"" + path + "/" + src +
                       "\" failed: No such file or directory (2)")
             else:
