@@ -6,8 +6,6 @@ import sort_algo
 
 def handle_wel_args():
     global deck_sort
-    # parser = ArgumentParser(prog="rsync",
-                            # usage='./sorting_deck.py [--algo ALGO] [--gui] N [N...]')
     parser = ArgumentParser()
     parser.add_argument('nums',  metavar='N',nargs="+", type=int,
                         help="an integer for the list to sort")
