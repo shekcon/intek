@@ -4,9 +4,6 @@ from argparse import ArgumentParser
 import json
 from class_smartdb import Smart_DB
 import sys
-import tracemalloc
-import cProfile
-import resource
 
 
 '''
@@ -29,18 +26,6 @@ def read_pattern(js_file):
 #         line[3] = int(line[3])
 #         data.append(line)
 #     return data
-#
-#
-# def read_resource(usage):
-#     RESOURCES = [
-#         ('ru_utime', 'User time'),
-#         ('ru_stime', 'System time'),
-#         ('ru_maxrss', 'Max. Resident Set Size'),
-#     ]
-#     usage = resource.getrusage(usage)
-#     for name, desc in RESOURCES:
-#         print('{:<25} ({:<10}) = {}'.format(
-#             desc, name, getattr(usage, name)))
 
 
 def main():

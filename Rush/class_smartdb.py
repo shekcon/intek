@@ -10,7 +10,6 @@ field_id = {
 
 class Smart_DB():
 
-
     def __init__(self, field_pattern=''):
         self.querys = []
         if isinstance(field_pattern, list):
@@ -27,7 +26,6 @@ class Smart_DB():
             compare = Compare(query['where_or'], mode='or')
         select = Select(query['select'], query.get('order', ''))
         self.querys.append({'compare': compare, 'select': select})
-
 
     def find(self, database):
         for query in self.querys:
@@ -95,7 +93,7 @@ class Compare():
         if id == 'gender':
             if (match.upper() == 'M'):
                 match = 'male'
-            elif  (match.upper() == 'F'):
+            elif (match.upper() == 'F'):
                 match = 'female'
         if (first and
             ((operator == '>' and data[self.field_id[id]][0] > match) or
@@ -111,17 +109,17 @@ class Compare():
             return True
         return False
 
-    def __repr__(self):
-        data = [compare['left'] + " " + compare['op'] + " " +
-                compare['right'] for compare in self.patterns]
-        return " " + self.mode + "\n + " + "\n + ".join(data)
+    # def __repr__(self):
+    #     data = [compare['left'] + " " + compare['op'] + " " +
+    #             compare['right'] for compare in self.patterns]
+    #     return " " + self.mode + "\n + " + "\n + ".join(data)
 
 
 class Select():
 
     def __init__(self, field_show, order='', field_id=field_id):
         self.valid_data = []
-        self.fields= []
+        self.fields = []
         # stored field user wants
         for field in field_show.split(','):
             self.fields.append(field.strip())
@@ -150,7 +148,7 @@ class Select():
                 match.append(str(data[self.field_id[field]]))
             print(", ".join(match))
 
-    def __repr__(self):
-        return "%s"%(", ".join(self.fields) + "\n" + "-Order: " +
-                     self.order if self.order else ", ".join(self.fields) +
-                     "\n" + "-Order: No")
+    # def __repr__(self):
+    #     return "%s"%(", ".join(self.fields) + "\n" + "-Order: " +
+    #                  self.order if self.order else ", ".join(self.fields)
+    #                  +"\n" + "-Order: No")
