@@ -11,6 +11,5 @@
         "op": "=",
         "right": "female"
       }
-    ],
-  "order":"age"
+    ]
 }

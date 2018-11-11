@@ -7,6 +7,8 @@ import sys
 import tracemalloc
 import cProfile
 import resource
+
+
 '''
 # TODO: format data
 first_name,last_name,username,age,gender,city
@@ -30,37 +32,32 @@ def read_database():
         data.append(line)
     return data
 
+
 def read_resource(usage):
     RESOURCES = [
         ('ru_utime', 'User time'),
         ('ru_stime', 'System time'),
         ('ru_maxrss', 'Max. Resident Set Size'),
     ]
-
     usage = resource.getrusage(usage)
-
     for name, desc in RESOURCES:
         print('{:<25} ({:<10}) = {}'.format(
             desc, name, getattr(usage, name)))
 
+
 def main():
-    tracemalloc.start(25)
     args = handle_wel_args()
-    pr = cProfile.Profile()
-    pr.enable()
     process = read_pattern(args.json)
     print("-Select: %s\n-Where: %s\n-Result:" % (
         process.select, process.compare))
-    process.find(read_database())
+    for line in sys.stdin:
+        line = line.strip().split(',')
+        line[3] = int(line[3])
+        process.find(line)
     process.show()
-    pr.disable()
-    pr.print_stats()
-    read_resource(resource.RUSAGE_SELF)
-    
 
 
 def handle_wel_args():
-    
     parser = ArgumentParser()
     parser.add_argument(
         'json',  help="set requirement to show data on terminal")

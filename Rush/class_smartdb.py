@@ -9,9 +9,6 @@ field_id = {
 
 
 class Smart_DB():
-    '''
-
-    '''
 
     def __init__(self, field_pattern=''):
         self.select = ""
@@ -30,11 +27,12 @@ class Smart_DB():
     def find(self, database):
         if self.compare:
             self.compare.find_match(database)
+
+    def show(self):
+        if self.compare:
             self.select.get_data(self.compare.valid_data)
         else:
             self.select.get_data(database)
-
-    def show(self):
         self.select.show()
 
 
@@ -49,19 +47,26 @@ class Compare():
     def get_pattern(self, key):
         return key['left'].split(' '), key['op'], key['right']
 
-    def find_match(self, database):
-        for data in database:
-            flag = True
-            for comp in self.patterns:
-                pattern, operator, match = self.get_pattern(comp)
-                if self.mode == 'or' and self.is_matching(pattern, operator, match, data):
-                    self.valid_data.append(data)
-                    break
-                elif self.mode == 'and' and not self.is_matching(pattern, operator, match, data):
-                    flag = False
-                    break
-            if flag and self.mode == "and":
+    def find_match(self, data):
+        # for data in database:
+        flag = True
+        for comp in self.patterns:
+            pattern, operator, match = self.get_pattern(comp)
+            if self.mode == 'or' and self.is_matching(pattern,
+                                                      operator,
+                                                      match,
+                                                      data):
                 self.valid_data.append(data)
+                break
+            elif (self.mode == 'and' and
+                  not self.is_matching(pattern,
+                                       operator,
+                                       match,
+                                       data)):
+                flag = False
+                break
+        if flag and self.mode == "and":
+            self.valid_data.append(data)
 
     def is_matching(self, pattern, operator, match, data):
         if len(pattern) > 1:
@@ -79,7 +84,7 @@ class Compare():
              (operator == '!=' and data[self.field_id[id]][0] != match))):
             return True
         elif (not first and
-              ((operator == '>' and (data[self.field_id[id]] > match)) or
+              ((operator == '>' and data[self.field_id[id]] > match) or
                 (operator == '<' and data[self.field_id[id]] < match) or
                 (operator == '=' and data[self.field_id[id]] == match) or
                 (operator == '!=' and data[self.field_id[id]] != match))):
@@ -119,4 +124,6 @@ class Select():
             print(", ".join(match))
 
     def __repr__(self):
-        return ", ".join(self.fields) + "\n" + "-Order: " + self.order if self.order else ", ".join(self.fields) + "\n" + "-Order: No"
+        return "%s"%(", ".join(self.fields) + "\n" + "-Order: " +
+                     self.order if self.order else ", ".join(self.fields) +
+                     "\n" + "-Order: No")
