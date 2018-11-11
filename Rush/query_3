@@ -1,3 +1,48 @@
+[
+{
+  "select": "first_name, last_name, username, age, gender, city",
+  "where_and":
+    [
+      {
+        "left": "first_name",
+        "op": "=",
+        "right": "Jose"
+      },
+      {
+        "left": "gender",
+        "op": "=",
+        "right": "male"
+      },
+	{
+        "left": "age",
+        "op": ">",
+        "right": "100"
+      }
+    ],
+  "order": "age"
+},
+{
+  "select": "first_name, last_name, username, age, gender, city",
+  "where_and":
+    [
+      {
+        "left": "first_name",
+        "op": "=",
+        "right": "Jose"
+      },
+      {
+        "left": "gender",
+        "op": "=",
+        "right": "male"
+      },
+	{
+        "left": "age",
+        "op": ">",
+        "right": "100"
+      }
+    ],
+  "order": "age"
+},
 {
   "select": "first_name, last_name, username, age, gender, city",
   "where_and":
@@ -20,3 +65,4 @@
     ],
   "order": "age"
 }
+]

@@ -1,0 +1,34 @@
+[
+{
+  "select": "first_name, last_name, username",
+  "where_and":
+    [
+      {
+        "left": "gender",
+        "op": "=",
+        "right": "M"
+      }, {
+        "left": "age",
+        "op": ">",
+        "right": "30"
+      }
+    ],
+  "order": "username"
+},
+{
+  "select": "username, age",
+  "where_or":
+    [
+      {
+        "left": "gender",
+        "op": "=",
+        "right": "M"
+      }, {
+        "left": "gender",
+        "op": "=",
+        "right": "F"
+      }
+    ]
+}
+
+]
