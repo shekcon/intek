@@ -10,45 +10,60 @@ field_id = {
 
 class Smart_DB():
 
-    def __init__(self, field_pattern=''):
-        self.select = ""
-        self.compare = ""
-        self.field_pattern = field_pattern
-        self.split_field()
 
-    def split_field(self):
-        if self.field_pattern.get('where_and', ''):
-            self.compare = Compare(self.field_pattern['where_and'], mode='and')
-        elif self.field_pattern.get('where_or', ''):
-            self.compare = Compare(self.field_pattern['where_or'], mode='or')
-        self.select = Select(self.field_pattern.get(
-            'select', ''), self.field_pattern.get('order', ''))
+    def __init__(self, field_pattern=''):
+        self.querys = []
+        if isinstance(field_pattern, list):
+            for query in field_pattern:
+                self.split_field(query)
+        else:
+            self.split_field(field_pattern)
+
+    def split_field(self, query):
+        compare = ''
+        if query.get('where_and', ''):
+            compare = Compare(query['where_and'], mode='and')
+        elif query.get('where_or', ''):
+            compare = Compare(query['where_or'], mode='or')
+        select = Select(query['select'], query.get('order', ''))
+        self.querys.append({'compare': compare, 'select': select})
+
 
     def find(self, database):
-        if self.compare:
-            self.compare.find_match(database)
+        for query in self.querys:
+            if query['compare']:
+                query['compare'].find_match(database)
+            else:
+                query['select'].add_data(database)
 
     def show(self):
-        if self.compare:
-            self.select.get_data(self.compare.valid_data)
-        else:
-            self.select.get_data(database)
-        self.select.show()
+        for query in self.querys:
+            if query['compare']:
+                query['select'].add_data(query['compare'].valid_data)
+            query['select'].show()
 
 
 class Compare():
-    valid_data = []
 
     def __init__(self, patterns, mode, field_id=field_id):
         self.patterns = patterns
         self.mode = mode
         self.field_id = field_id
+        self.valid_data = []
 
     def get_pattern(self, key):
         return key['left'].split(' '), key['op'], key['right']
 
-    def find_match(self, data):
+    def find_match(self, data, mode="SINGLE"):
         # for data in database:
+        flag = True
+        if mode == 'SINGLE':
+            self.check_match(data)
+        else:
+            for e in data:
+                self.check_match(e)
+
+    def check_match(self, data):
         flag = True
         for comp in self.patterns:
             pattern, operator, match = self.get_pattern(comp)
@@ -77,6 +92,11 @@ class Compare():
             first = False
         if id == 'age':
             match = int(match)
+        if id == 'gender':
+            if (match.upper() == 'M'):
+                match = 'male'
+            elif  (match.upper() == 'F'):
+                match = 'female'
         if (first and
             ((operator == '>' and data[self.field_id[id]][0] > match) or
              (operator == '<' and data[self.field_id[id]][0] < match) or
@@ -98,24 +118,31 @@ class Compare():
 
 
 class Select():
-    fields = []
 
     def __init__(self, field_show, order='', field_id=field_id):
+        self.valid_data = []
+        self.fields= []
         # stored field user wants
         for field in field_show.split(','):
             self.fields.append(field.strip())
         self.order = order
         self.field_id = field_id
 
-    def get_data(self, database):
+    def sort_data(self):
         if self.order:
             # sort data valid follow order
-            self.valid_data = sorted(database, key=lambda k: (
+            self.valid_data = sorted(self.valid_data, key=lambda k: (
                 k[self.field_id[self.order]]))
-        else:
-            self.valid_data = database
+
+    def add_data(self, database):
+        if database:
+            if isinstance(database[0], str):
+                self.valid_data.append(database)
+            else:
+                self.valid_data += database
 
     def show(self):
+        self.sort_data()
         for data in self.valid_data:
             # get field that user wants
             match = []

@@ -10,7 +10,7 @@
         }, {
           "left": "first_letter last_name",
           "op": "=",
-          "right": "M"      
+          "right": "M"
         }
       ],
     "order": "age"
@@ -26,7 +26,7 @@
         }, {
           "left": "gender",
           "op": "=",
-          "right": "F"      
+          "right": "F"
         }
       ]
   },
@@ -41,10 +41,9 @@
         }, {
           "left": "age",
           "op": ">",
-          "right": "30"      
+          "right": "30"
         }
       ],
     "order": "username"
   }
 ]
-
