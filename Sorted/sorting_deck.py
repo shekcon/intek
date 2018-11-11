@@ -3,6 +3,7 @@
 
 from argparse import ArgumentParser
 import sort_algo
+import subprocess
 
 
 def handle_wel_args():
@@ -25,8 +26,9 @@ if __name__ == "__main__":
     if len(deck_sort.nums) > 15 and deck_sort.gui:
         print('Input too large')
     elif deck_sort.gui:
-        # TODO: gui for sort algorithms
-        pass
+        program = ['./sort_gui.py'] + [str(e)for e in deck_sort.nums]
+        program += ['--algo'] + [deck_sort.algo]
+        subprocess.run(program)
     else:
         if deck_sort.algo == "bubble":
             sort_algo.bubble(deck_sort.nums)

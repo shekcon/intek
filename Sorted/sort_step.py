@@ -1,5 +1,6 @@
 from class_gui import Action
 
+
 def bubble(nums):
     steps = []
     size = len(nums)
@@ -27,20 +28,20 @@ def bubble(nums):
 def insert(nums):
     steps = []
     size = len(nums)
-    # steps.append(('noswap', 0, 0))
-    # steps.append(('start', 0, 0))
-    # steps.append(('clean', 0, 0))
+    steps.append(Action('noswap', [0]))
+    steps.append(Action('temp', [0]))
+    steps.append(Action('noswap', [0]))
+    steps.append(Action('clean', [0]))
     for i in range(1, size):
         left = i - 1
         key = nums[i]
         steps.append(Action('noswap', [i]))
-        # steps.append(('start', i, i))
-        
+        steps.append(Action('temp', [i]))
         # find positon of key
         while left >= 0 and key < nums[left]:
             # assign right of left equal left
             nums[left + 1] = nums[left]
-            # steps.append(Action('noswap', left + 1, left))
+            steps.append(Action('noswap', [left + 1, left]))
             steps.append(Action('swap', [left + 1, left]))
             left -= 1
         # assign key
@@ -48,10 +49,10 @@ def insert(nums):
         # take time find position of key
         if left + 1 == i:
             steps.append(Action('noswap', [i]))
-            # steps.append(('noswap', i, i))
+            steps.append(Action('noswap', [i]))
         elif left >= 0 and key > nums[left]:
             steps.append(Action('noswap', [left]))
-        # steps.append(('clean', i, i))
+        steps.append(Action('clean', [left + 1]))
         steps.append(Action('finish', [i]))
     steps.append(Action('completed'))
     return steps
@@ -80,7 +81,8 @@ def partition(nums, start, end, steps):
     steps.append(Action('noswap', [index]))
     nums[index], nums[end] = nums[end], nums[index]
     steps.append(Action('swap', [index, end]))
-    # steps.append(('start', [end]))
+    steps.append(Action('noswap', [end]))
+    steps.append(Action('temp', [end]))
     # take pivot
     pivot = nums[end]
     # define leftmark, rightmark
@@ -106,7 +108,8 @@ def partition(nums, start, end, steps):
             steps.append(Action('noswap', [left, right]))
             right -= 1
     # swap pivot value with number at left
-    # steps.append(('clean', end, end))
+    steps.append(Action('clean', [end]))
+    steps.append(Action('noswap', [end]))
     nums[end], nums[left] = nums[left], nums[end]
     if left != end:
         steps.append(Action('swap', [left, end]))
