@@ -1,0 +1,16 @@
+{
+  "select": "username, age",
+  "where_and":
+    [
+      {
+        "left": "first_letter first_name",
+        "op": "<",
+        "right": "T"
+      }, {
+        "left": "first_letter last_name",
+        "op": "=",
+        "right": "M"
+      }
+    ],
+  "order": "age"
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "select": "username, age",
+    "where_and":
+      [
+        {
+          "left": "first_letter first_name",
+          "op": "<",
+          "right": "T"
+        }, {
+          "left": "first_letter last_name",
+          "op": "=",
+          "right": "M"      
+        }
+      ],
+    "order": "age"
+  },
+  {
+    "select": "username, age",
+    "where_or":
+      [
+        {
+          "left": "gender",
+          "op": "=",
+          "right": "M"
+        }, {
+          "left": "gender",
+          "op": "=",
+          "right": "F"      
+        }
+      ]
+  },
+  {
+    "select": "first_name, last_name, username",
+    "where_and":
+      [
+        {
+          "left": "gender",
+          "op": "=",
+          "right": "M"
+        }, {
+          "left": "age",
+          "op": ">",
+          "right": "30"      
+        }
+      ],
+    "order": "username"
+  }
+]
+

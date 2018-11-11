@@ -1,0 +1,22 @@
+{
+  "select": "first_name, last_name, username, age, gender, city",
+  "where_or":
+    [
+      {
+        "left": "first_name",
+        "op": "=",
+        "right": "Alan"
+      },
+      {
+        "left": "first_name",
+        "op": "=",
+        "right": "Abel"
+      },
+	{
+        "left": "first_name",
+        "op": "=",
+        "right": "Aaron"
+      }
+    ],
+  "order": "age"
+}
