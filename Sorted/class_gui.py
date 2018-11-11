@@ -27,8 +27,9 @@ class List_Number():
     def swap_index(self, pos):
         self.numbers[pos[1]].id = pos[0]
         self.numbers[pos[0]].id = pos[1]
-        self.numbers[pos[0]], self.numbers[pos[1]
-                                           ] = self.numbers[pos[1]], self.numbers[pos[0]]
+        temp = self.numbers[pos[0]]
+        self.numbers[pos[0]] = self.numbers[pos[1]]
+        self.numbers[pos[1]] = temp
 
     def sort_highlight(self, end=-1, mode='all', color='yellow'):
         if mode == 'all':
@@ -55,7 +56,8 @@ class Number():
     white = (255, 255, 255, 255)
     yellow = (255, 255, 0, 255)
 
-    def __init__(self, number, index, image, x, y, scale=1, compare=False, color=white):
+    def __init__(self, number, index, image, x, y,
+                 scale=1, compare=False, color=white):
         # declare attribute
         self.text = number
         self.isdraw = True
@@ -219,8 +221,6 @@ class Swap(object):
     def completed(self):
         self.numbers.swap_index(self.get_id())
         self.is_swap = False
-        self.swap[0].move(-5, 0)
-        self.swap[1].move(5, 0)
         self.swap[0].update_new_pos()
         self.swap[1].update_new_pos()
 
@@ -229,7 +229,7 @@ class Swap(object):
             self.swap[0].move(0, 15)
             self.swap[1].move(0, -15)
             self.up += 1
-        elif self.swap[0].image.x <= self.default_pos[0]:
+        elif self.swap[0].image.x < self.default_pos[0]:
             self.swap[0].move(5, 0)
             self.swap[1].move(-5, 0)
         elif self.down <= self.default:
@@ -240,7 +240,7 @@ class Swap(object):
             self.completed()
 
     def move_cross(self):
-        if self.swap[0].image.x <= self.default_pos[0]:
+        if self.swap[0].image.x < self.default_pos[0]:
             self.swap[0].move(5, 0)
             self.swap[1].move(-5, 0)
         else:

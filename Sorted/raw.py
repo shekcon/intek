@@ -24,11 +24,9 @@ def handle_swap_temp(command):
                         nums_sort[command[2]],
                         mode=command[0],
                         move='cross')
-        # swap_num = Swap(nums_sort[command[1]],
-        #                 nums_sort[command[2]],
-        #                 mode=command[0])
     else:
         highlight_numbers(len(nums_sort))
+
 
 def show_compare(command):
     global idea
@@ -39,7 +37,8 @@ def show_compare(command):
             compare = " < "
         else:
             compare = " = "
-        text = str(command[2]) + compare + str(command[3]) + " -->" + command[1]
+        # text = str(command[2]) + compare +
+        # str(command[3]) + " -->" + command[1]
     else:
         text = str(command[2]) + " finish --> next element"
     idea = Number(text, "", thoughbubble,

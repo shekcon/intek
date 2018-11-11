@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-
-from class_gui import List_Number, Swap, HighLight
+from class_gui import List_Number, Swap, HighLight, Number
 import pyglet
 from pyglet.window import key
 from argparse import ArgumentParser
-# import sort_algo
 import sort_step
 import time
-
-
 
 
 # thoughbubble = pyglet.image.load('./Resources/idea.png')
@@ -16,6 +12,9 @@ import time
 window = pyglet.window.Window(1920, 1080)
 background = pyglet.image.load('./Resources/background.jpg')
 backg = pyglet.sprite.Sprite(background, x=0, y=0)
+temp = Number(' ', -1, pyglet.image.load('./Resources/rectangle_s.png'),
+              1920 // 2 - 50, 500)
+temp.isdraw = False
 
 
 @window.event
@@ -23,7 +22,8 @@ def on_draw():
     window.clear()
     backg.draw()
     list_numbers.draw()
-    time.sleep(0.02)
+    temp.draw()
+    time.sleep(0.01)
 
 
 @window.event
@@ -52,6 +52,10 @@ def set_step():
         compare.get_data(act.get_index(), act.action)
     elif act.action == 'completed':
         list_numbers.sort_highlight()
+    elif act.action == 'temp':
+        show_temp(act.id)
+    elif act.action == 'clean':
+        clean_temp(act.id)
     flag = False
 
 
@@ -66,18 +70,17 @@ def sorting_algo(dt):
         set_step()
 
 
-# def show_temp(command):
-    # global stored, list_numbers, temp
-    # list_numbers[command].isdraw = False
-    # temp = Number(list_numbers[command].text, -1, circle, 1920 // 2 - 50, 500)
-    # stored = list_numbers[command]
+def show_temp(index):
+    global list_numbers, temp
+    list_numbers.numbers[index[0]].isdraw = False
+    temp.isdraw = True
+    temp.num.text = list_numbers.numbers[index[0]].text
 
 
-# def clean_temp():
-#     global stored, temp
-#     stored.isdraw = True
-#     temp = ""
-#     stored = ""
+def clean_temp(index):
+    global temp
+    list_numbers.numbers[index[0]].isdraw = True
+    temp.isdraw = False
 
 
 def handle_welcome_args():
@@ -97,20 +100,19 @@ def handle_welcome_args():
 if __name__ == "__main__":
     global steps, list_numbers, args, compare, flag, auto
     args = handle_welcome_args()
-    if args.gui:
-        flag = False
-        auto = False
-        list_numbers = List_Number(args.nums)
-        move = 'normal'
-        if args.algo == 'bubble':
-            steps = sort_step.bubble(args.nums)
-        elif args.algo == 'insert':
-            move = 'cross'
-            steps = sort_step.insert(args.nums)
-        elif args.algo == 'quick':
-            steps = sort_step.quick(args.nums, 0,
-                                    len(args.nums) - 1, [])
-        compare = HighLight(list_numbers, args.algo)
-        swap_gui = Swap(list_numbers, move=move)
-        pyglet.clock.schedule_interval(sorting_algo, 1/60)
-        pyglet.app.run()
+    flag = False
+    auto = False
+    list_numbers = List_Number(args.nums)
+    move = 'normal'
+    if args.algo == 'bubble':
+        steps = sort_step.bubble(args.nums)
+    elif args.algo == 'insert':
+        move = 'cross'
+        steps = sort_step.insert(args.nums)
+    elif args.algo == 'quick':
+        steps = sort_step.quick(args.nums, 0,
+                                len(args.nums) - 1, [])
+    compare = HighLight(list_numbers, args.algo)
+    swap_gui = Swap(list_numbers, move=move)
+    pyglet.clock.schedule_interval(sorting_algo, 1/60)
+    pyglet.app.run()
