@@ -4,10 +4,11 @@
 from argparse import ArgumentParser
 import sort_algo
 
+
 def handle_wel_args():
     global deck_sort
     parser = ArgumentParser()
-    parser.add_argument('nums',  metavar='N',nargs="+", type=int,
+    parser.add_argument('nums',  metavar='N', nargs="+", type=int,
                         help="an integer for the list to sort")
     parser.add_argument('--algo', metavar='ALGO', type=str, default="bubble",
                         choices=["bubble", 'insert', 'quick', 'merge'],
@@ -33,7 +34,5 @@ if __name__ == "__main__":
             sort_algo.insert(deck_sort.nums)
         elif deck_sort.algo == "quick":
             sort_algo.quick(deck_sort.nums, 0, len(deck_sort.nums) - 1)
-            # TODO: quick algorithms
         else:
             sort_algo.merge(deck_sort.nums)
-            # TODO: merge algorithms
