@@ -157,7 +157,7 @@ def update_diff_des(dest, src, size_src):
             des = os.open(dest, os.O_RDWR)
         except PermissionError:
             os.unlink(dest)
-            os.link(src, dest)
+            rewrite_content_des(dest, src)
         else:
             src = os.open(src, os.O_RDONLY)
             # handle get data
@@ -302,9 +302,7 @@ if __name__ == "__main__":
                 print("skipping directory .")
             elif not os.path.exists(src):
                 print("rsync: link_stat \"" + path + "/" + src + "\" failed: No such file or directory (2)")
+            elif rsync.recursive and os.path.isdir(src):
+                handle_recursive(dest, src)
             else:
-                # handle recursive with source is directory
-                if rsync.recursive and os.path.isdir(src):
-                    handle_recursive(dest, src)
-                else:
-                    main(dest, src)
+                main(dest, src)
