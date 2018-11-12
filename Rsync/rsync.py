@@ -225,25 +225,19 @@ def main(des, src):
             name_src = os.path.split(src)[1]
             des = get_valid_name(des, name_src)
             # handle source have symlink or hardlink
-            if (os.path.islink(src) or
-                    os.stat(src).st_nlink > 1):
+            if (os.path.islink(src) or os.stat(src).st_nlink > 1):
                 handle_sym_hard(des, src)
             # handle file not exist
             elif not os.path.exists(des):
                 rewrite_content_des(des, src)
-            # handle file exist
-            else:
-                diff = is_diff_des(des, src, mtime, size_src)
-                # handle different on destination
-                if diff:
-                    update_diff_des(des, src, size_src)
+            # handle file exist and different on destination
+            elif is_diff_des(des, src, mtime, size_src):
+                update_diff_des(des, src, size_src)
             # handle change permission, access time and modification time
             if os.path.exists(des):
                 change_per_atime_mtime(des, per, atime, mtime)
         except PermissionError:
-            print("rsync: send_files failed to open \"" +
-                  os.path.join(path, src) +
-                  "\": Permission denied (13)")
+            print("rsync: send_files failed to open \"" + os.path.join(path, src) + "\": Permission denied (13)")
 
 
 def get_files_dirs_src(src):
@@ -301,15 +295,13 @@ if __name__ == "__main__":
     # destination need to be directory
     # if not specific --> create destination is directory
     if (len(rsync.srcs) > 1 or rsync.recursive) and os.path.isfile(dest):
-        print("ERROR: destination must be a directory\
- when copying more than 1 file")
+        print("ERROR: destination must be a directory when copying more than 1 file")
     else:
         for src in rsync.srcs:
             if not rsync.recursive and os.path.isdir(src):
                 print("skipping directory .")
             elif not os.path.exists(src):
-                print("rsync: link_stat \"" + path + "/" + src +
-                      "\" failed: No such file or directory (2)")
+                print("rsync: link_stat \"" + path + "/" + src + "\" failed: No such file or directory (2)")
             else:
                 # handle recursive with source is directory
                 if rsync.recursive and os.path.isdir(src):
