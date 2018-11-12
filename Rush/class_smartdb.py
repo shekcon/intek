@@ -8,34 +8,35 @@ field_id = {
 }
 
 
-class Smart_DB():
+class Finder():
 
-    def __init__(self, field_pattern=''):
-        self.querys = []
-        if isinstance(field_pattern, list):
-            for query in field_pattern:
+    def __init__(self, queries):
+        self.queries = []
+        if isinstance(queries, list):
+            for query in queries:
                 self.split_field(query)
         else:
-            self.split_field(field_pattern)
+            self.split_field(queries)
 
     def split_field(self, query):
-        compare = ''
         if query.get('where_and', ''):
             compare = Compare(query['where_and'], mode='and')
         elif query.get('where_or', ''):
             compare = Compare(query['where_or'], mode='or')
+        else:
+            compare = ''
         select = Select(query['select'], query.get('order', ''))
-        self.querys.append({'compare': compare, 'select': select})
+        self.queries.append({'compare': compare, 'select': select})
 
     def find(self, database):
-        for query in self.querys:
+        for query in self.queries:
             if query['compare']:
                 query['compare'].find_match(database)
             else:
                 query['select'].add_data(database)
 
     def show(self):
-        for query in self.querys:
+        for query in self.queries:
             if query['compare']:
                 query['select'].add_data(query['compare'].valid_data)
             query['select'].show()
@@ -43,71 +44,45 @@ class Smart_DB():
 
 class Compare():
 
-    def __init__(self, patterns, mode, field_id=field_id):
-        self.patterns = patterns
+    def __init__(self, comparies, mode, field_id=field_id):
+        self.comparies = comparies
         self.mode = mode
-        self.field_id = field_id
+        self.fields = field_id
         self.valid_data = []
 
-    def get_pattern(self, key):
+    def get_cond(self, key):
         return key['left'].split(' '), key['op'], key['right']
 
-    def find_match(self, data, mode="SINGLE"):
-        # for data in database:
-        flag = True
-        if mode == 'SINGLE':
-            self.check_match(data)
-        else:
-            for e in data:
-                self.check_match(e)
+    def find_match(self, database, mode=''):
+        for data in database:
+            if self.check_match(data):
+                self.valid_data.append(data)
 
     def check_match(self, data):
-        flag = True
-        for comp in self.patterns:
-            pattern, operator, match = self.get_pattern(comp)
-            if self.mode == 'or' and self.is_matching(pattern,
-                                                      operator,
-                                                      match,
-                                                      data):
-                self.valid_data.append(data)
-                break
-            elif (self.mode == 'and' and
-                  not self.is_matching(pattern,
-                                       operator,
-                                       match,
-                                       data)):
-                flag = False
-                break
-        if flag and self.mode == "and":
-            self.valid_data.append(data)
+        for comp in self.comparies:
+            pat, op, match = self.get_cond(comp)
+            if self.mode == 'or' and self.is_match(pat, op, match, data):
+                return True
+            elif self.mode == 'and' and not self.is_match(pat, op, match, data):
+                return False
+        return True
 
-    def is_matching(self, pattern, operator, match, data):
-        if len(pattern) > 1:
-            id = pattern[1]
-            first = True
+    def is_match(self, pat, op, mat, data):
+        if len(pat) > 1:
+            field = pat[1]
+            data = data[self.fields[field]][0]
         else:
-            id = pattern[0]
-            first = False
-        if id == 'age':
-            match = int(match)
-        if id == 'gender':
-            if (match.upper() == 'M'):
-                match = 'male'
-            elif (match.upper() == 'F'):
-                match = 'female'
-        if (first and
-            ((operator == '>' and data[self.field_id[id]][0] > match) or
-             (operator == '<' and data[self.field_id[id]][0] < match) or
-             (operator == '=' and data[self.field_id[id]][0] == match) or
-             (operator == '!=' and data[self.field_id[id]][0] != match))):
-            return True
-        elif (not first and
-              ((operator == '>' and data[self.field_id[id]] > match) or
-                (operator == '<' and data[self.field_id[id]] < match) or
-                (operator == '=' and data[self.field_id[id]] == match) or
-                (operator == '!=' and data[self.field_id[id]] != match))):
-            return True
-        return False
+            field = pat[0]
+            data = data[self.fields[field]]
+        if field == 'age':
+            mat = int(mat)
+        if field == 'gender':
+            mat = mat.lower()
+            data = data[: len(mat)]
+        return ((op == '>' and data > mat) or
+                (op == '<' and data < mat) or
+                (op == '=' and data == mat) or
+                (op == '!=' and data != mat))
 
     # def __repr__(self):
     #     data = [compare['left'] + " " + compare['op'] + " " +
@@ -117,36 +92,26 @@ class Compare():
 
 class Select():
 
-    def __init__(self, field_show, order='', field_id=field_id):
-        self.valid_data = []
-        self.fields = []
-        # stored field user wants
-        for field in field_show.split(','):
-            self.fields.append(field.strip())
+    def __init__(self, field_show, order, fields=field_id):
+        self.database = []
+        self.fields_user = field_show.split(', ')
         self.order = order
-        self.field_id = field_id
+        self.fields = fields
 
     def sort_data(self):
         if self.order:
-            # sort data valid follow order
-            self.valid_data = sorted(self.valid_data, key=lambda k: (
-                k[self.field_id[self.order]]))
+            self.database = sorted(self.database, key=lambda k: (k[self.fields[self.order]]))
 
     def add_data(self, database):
-        if database:
-            if isinstance(database[0], str):
-                self.valid_data.append(database)
-            else:
-                self.valid_data += database
+        self.database = database
+        self.sort_data()
 
     def show(self):
-        self.sort_data()
-        for data in self.valid_data:
-            # get field that user wants
-            match = []
-            for field in self.fields:
-                match.append(str(data[self.field_id[field]]))
-            print(", ".join(match))
+        for data in self.database:
+            print(", ".join(map(str, self.get_field(data))))
+
+    def get_field(self, data):
+        return [data[self.fields[field]] for field in self.fields_user]
 
     # def __repr__(self):
     #     return "%s"%(", ".join(self.fields) + "\n" + "-Order: " +
