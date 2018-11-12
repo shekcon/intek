@@ -11,7 +11,7 @@
       {
         "left": "gender",
         "op": "=",
-        "right": "male"
+        "right": "M"
       },
 	{
         "left": "age",
