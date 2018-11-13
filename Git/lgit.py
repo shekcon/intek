@@ -3,7 +3,7 @@
 from subprocess import Popen, check_output
 from subprocess import PIPE
 from os import mkdir
-from os import environ
+from os import environ, getcwd
 from os.path import join
 from argparse import ArgumentParser
 
@@ -39,13 +39,12 @@ def get_status(top):
 
 # get command and option
 def get_args():
-        global rsync, path
-        rsync = ArgumentParser(prog="lgit", description=None)
-        rsync.add_argument('command',  metavar="command", choices=["init", 'add',
+        parser = ArgumentParser(prog="lgit", description=None)
+        parser.add_argument('command',  metavar="command", choices=["init", 'add',
         'status', 'commit', 'checkout', 'rm', 'config'],
                            help="command options")
-        rsync.add_argument('file', nargs="*", help=" Add file contents to the index")
-        rsync.add_argument('-m', '--message',
+        parser.add_argument('file', nargs="*", help=" Add file contents to the index")
+        parser.add_argument('-m', '--message',
                            help="description about what you do",
                            action="store_true")
         return rsync.parse_args()
@@ -53,7 +52,7 @@ def get_args():
 
 # testing
 def main():
-    top = '.lgit/'
+    top = join(getcwd(), '.lgit/')
     args = get_args()
     # test git init
     if args.command == 'init':
