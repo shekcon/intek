@@ -3,20 +3,14 @@
 from subprocess import Popen, check_output
 from subprocess import PIPE
 from os import mkdir
+from os import environ
 from os.path import join
-from argparse import Argpa
+from argparse import ArgumentParser
 
 
-
-def get_cofg_name():
-    ps = Popen(('env'), stdout=PIPE)
-    output = check_output(('grep', 'LOGNAME'), stdin=ps.stdout)
-    ps.wait()
-    return output.decode().strip('LOGNAME=')
-
-
-def init_git():
-    global top
+# git init
+# init directory lgit
+def init_git(top):
     init_git = {'dir': ('objects', 'commits', 'snapshots'),
                 'file': ('index', 'config')}
     try:
@@ -26,24 +20,58 @@ def init_git():
         for file in init_git['file']:
             with open(join(top, file), 'x') as f:
                 if file == 'config':
-                    f.write(get_cofg_name())
+                    # get name of env
+                    # env | grep LOGNAME
+                    f.write(environ.get('LOGNAME'))
         return 'Initialized empty Git repository'
     except FileExistsError:
         return 'Reinitialized existing Git repository'
 
-def get_status():
-    global top
+
+# working on
+def get_status(top):
     try:
         with open(join(top, 'index')) as f:
             pass
     except FileNotFoundError:
         return "fatal: not a git repository (or any of the parent directories)"
 
+
+# get command and option
+def get_args():
+        global rsync, path
+        rsync = ArgumentParser(prog="lgit", description=None)
+        rsync.add_argument('command',  metavar="command", choices=["init", 'add',
+        'status', 'commit', 'checkout', 'rm', 'config'],
+                           help="command options")
+        rsync.add_argument('file', nargs="*", help=" Add file contents to the index")
+        rsync.add_argument('-m', '--message',
+                           help="description about what you do",
+                           action="store_true")
+        return rsync.parse_args()
+
+
+# testing
 def main():
-    global top
     top = '.lgit/'
-    # print(init_git())
-    print(get_status())
+    args = get_args()
+    # test git init
+    if args.command == 'init':
+        print(init_git(top))
+    elif args.command == 'status':
+        pass
+    elif args.command == 'add':
+        pass
+    elif args.command == 'commit':
+        pass
+    elif args.command == 'rm':
+        pass
+    elif args.command == 'config':
+        pass
+    else:
+        pass
+    # test git status when don't have git directory
+    # print(get_status(top))
 
 
 
