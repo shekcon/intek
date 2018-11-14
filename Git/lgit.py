@@ -48,7 +48,7 @@ def get_args():
         parser.add_argument('-m', '--message',
                            help="description about what you do",
                            action="store_true")
-        return rsync.parse_args()
+        return parser.parse_args()
 
 
 # testing
