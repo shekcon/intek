@@ -32,7 +32,7 @@ def split_dir_file(text, hash=True):
 #     except BaseException:
 #         return False
 #     return True
-# get string format time
+# get string format timestamp
 
 
 def format_time(file, second=True):
