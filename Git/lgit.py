@@ -6,6 +6,7 @@ from os import mkdir
 from os import environ, getcwd
 from os.path import join
 from argparse import ArgumentParser
+from hashlib import sha1
 
 
 # git init
