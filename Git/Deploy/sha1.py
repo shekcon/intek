@@ -12,4 +12,4 @@ if not os.path.exists(sys.argv[1]):
 
 with open(sys.argv[1], 'rb') as f:
 	contents = f.read()
-	print("SHA1: %s" % hashlib.sha1(contents).hexdigest()) and
+	print("SHA1: %s" % hashlib.sha1(contents).hexdigest())
