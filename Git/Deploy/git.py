@@ -23,17 +23,13 @@ def get_info_index(line):
     return line[0], line[1], line[2], line[3], line[-1]
 
 
-def get_name(line):
-    return line.strip().split(' ')[-1]
-
-
 def map_index(files):
     '''
     return dictionary of mapping line of file if have in index file
     '''
     file_mapping = {}
     for index, line in enumerate(read_file('.lgit/index')):
-        name = get_name(line)
+        _, _, _, _, name = get_info_index(line)
         if name in files:
             file_mapping[name] = index
     return file_mapping
@@ -52,8 +48,10 @@ def write_file(data, file):
 
 
 def get_names_index():
-    data = read_file('.lgit/index')
-    names = [get_name(line) for line in data]
+    names = []
+    for line in read_file('.lgit/index'):
+        _, _, _, _, name = get_info_index(line)
+        names.append(name)
     return names
 
 
