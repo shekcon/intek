@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from os import mkdir, environ, scandir, getcwd, chdir
-from os.path import join, getmtime, exists, isfile, isdir
+from os.path import join, getmtime, exists, isfile, isdir, relpath, abspath
 from datetime import datetime
 from argparse import ArgumentParser
 from time import time
@@ -72,18 +72,30 @@ def create_object(files):
 def handle_input(files):
     files_new = []
     for f in files:
-        if isdir(f):
-            sub_file = get_files_direc(f)
-            files_new = files_new + sub_file
+        path = format_path(f, mode='add')
+        if getcwd() in path:
+            path = path.replace(getcwd() + "/", "")
+            if isdir(path):
+                sub_file = get_files_direc(path)
+                files_new = files_new + sub_file
+            elif exists(path):
+                files_new.append(path)
+            else:
+                print("fatal: pathspec '" + f + "' did not match any files")
         else:
-            files_new.append(f)
+            print("fatal: %s '%s' is outside repository" % (f, f))
     return files_new
 
 
 def add_git(files):
     files_new = handle_input(files)
-    update_index(files, mode='add', mapping=map_index(files_new))
-    create_object(files_new)
+    if files_new:
+        print(files_new)
+        update_index(files_new, mode='add', mapping=map_index(files_new))
+        create_object(files_new)
+    elif not files:
+        print("Nothing specified, nothing added.\n\
+Maybe you wanted to say 'git add .'?")
 
 
 def get_files_direc(direc='.'):
@@ -96,7 +108,8 @@ def get_files_direc(direc='.'):
         for e in entry_direc:
             # store file in data_dir
             if e.is_file():
-                file_direc.append(e.path.strip('./'))
+                path = abspath(e.path).replace(getcwd() + "/", '')
+                file_direc.append(path)
             # store directory in data_dir
             if e.is_dir() and ".lgit" not in e.path:
                 dir_direc.append(e.path)
@@ -126,37 +139,32 @@ def status_git():
     show_status(file_index)
 
 
-# TODO: work on
 def show_status(file_index):
     untracked = get_untracked(file_index)
     staged, unstaged = get_unstaged_staged()
-    lists_show = ['On branch master\n\n']
+    print('On branch master\n')
     if not get_files_direc('.lgit/commits'):
-        lists_show.append("No commits yet\n\n")
+        print("No commits yet\n")
     if staged:
-        lists_show.append("Changes to be committed:\n\
-  (use \"./lgit.py reset HEAD ...\" to unstage)\n\n")
-        for file in staged:
-            lists_show.append("\t modified: " + file + '\n')
-        lists_show.append('\n')
+        print("Changes to be committed:\n\
+  (use \"./lgit.py reset HEAD ...\" to unstage)\n")
+        print("\t modified:", '\n\t modified: '.join(
+            [format_path(p) for p in staged]), end='\n\n')
     if unstaged:
-        lists_show.append("Changes not staged for commit:\n\
+        print("Changes not staged for commit:\n\
   (use \"./lgit.py add ...\" to update what will be committed)\n\
   (use \"./lgit.py checkout -- ...\" to discard changes \
-in working directory)\n\n")
-        for file in unstaged:
-            lists_show.append("\t modified: " + file + '\n')
-        lists_show.append('\n')
+in working directory)\n")
+        print("\t modified:", '\n\t modified: '.join(
+            [format_path(p) for p in unstaged]), end='\n\n')
     if untracked:
-        lists_show.append("Untracked files:\n\
-  (use \"./lgit.py add <file>...\" to include in what will be committed)\n\n")
-        for file in untracked:
-            lists_show.append("\t" + file + '\n')
-        lists_show.append('\n')
-    if not get_files_direc('.lgit/commits'):
-        lists_show.append("nothing added to commit but untracked files\
+        print("Untracked files:\n\
+  (use \"./lgit.py add <file>...\" to include in what will be committed)\n")
+        print("\t", '\n\t'.join([format_path(p)
+                                 for p in untracked]), sep='', end='\n\n')
+    if not get_files_direc('.lgit/commits') and untracked:
+        print("nothing added to commit but untracked files\
  present (use \"./lgit.py add\" to track)")
-    print(''.join(map(str, lists_show)))
 
 
 def commit_git(message):
@@ -218,9 +226,9 @@ def update_index(files, mode, mapping=''):
 
 
 def init_git():
-    dir = ('.lgit/objects', '.lgit/commits', '.lgit/snapshots')
+    direc = ('.lgit/objects', '.lgit/commits', '.lgit/snapshots')
     file = ('.lgit/index', '.lgit/config')
-    reinit_d = [d for d in dir if not isdir(d)]
+    reinit_d = [d for d in direc if not isdir(d)]
     reinit_f = [f for f in file if not isfile(f)]
     if not exists('.lgit'):
         mkdir('.lgit')
@@ -241,6 +249,23 @@ def init_git():
     write_file(data=[environ.get('LOGNAME')], file='.lgit/config')
     if not (reinit_d or reinit_f):
         print('Git repository already initialized.')
+
+
+def find_parent_git():
+    global cwd_path
+    cwd_path = getcwd()
+    while getcwd() != "/":
+        if exists('.lgit/'):
+            return True
+        chdir('../')
+    return False
+
+
+def format_path(path, mode='status'):
+    if mode == 'add':
+        return abspath(join(cwd_path, path))
+    elif mode == 'status':
+        return relpath(join(getcwd(), path), start=cwd_path)
 
 
 def format_time(time, second=True):
@@ -267,29 +292,33 @@ def get_args():
 
 
 def main():
-        args = get_args()
+    args = get_args()
     try:
         if args.command == 'init':
             init_git()
-        elif args.command == 'add':
-            add_git(args.files)
-        elif args.command == 'status':
-            status_git()
-        elif args.command == 'commit':
-            commit_git(args.message)
-        elif args.command == 'config':
-            write_file([args.author + '\n'], file='.lgit/config')
-        elif args.command == 'ls-files':
-            # TODO: ltung working on
-            print("working on")
-        elif args.command == 'log':
-            # TODO: ltung working on
-            print("working on")
-        elif args.command == 'rm':
-            # TODO: ltung working on
-            print("working on")
+        elif find_parent_git():
+            if args.command == 'add':
+                add_git(args.files)
+            elif args.command == 'status':
+                status_git()
+            elif args.command == 'commit':
+                commit_git(args.message)
+            elif args.command == 'config':
+                write_file([args.author + '\n'], file='.lgit/config')
+            elif args.command == 'ls-files':
+                # TODO: ltung working on
+                print("working on")
+            elif args.command == 'log':
+                # TODO: ltung working on
+                print("working on")
+            elif args.command == 'rm':
+                # TODO: ltung working on
+                print("working on")
+            else:
+                print("Git: '" + args.command + "' is not a git command.")
         else:
-            print("Git: '" + args.command + "' is not a git command.")
+            print('fatal: not a git repository (or any \
+of the parent directories)')
     except FileNotFoundError:
         print('fatal: not a git repository (or any of the parent directories)')
 
