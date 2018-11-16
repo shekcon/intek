@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from os import mkdir, environ, scandir, getcwd, chdir
+from os import mkdir, environ, scandir, getcwd, chdir, listdir
 from os.path import join, getmtime, exists, isfile, isdir, relpath, abspath
 from datetime import datetime
 from argparse import ArgumentParser
@@ -90,7 +90,6 @@ def handle_input(files):
 def add_git(files):
     files_new = handle_input(files)
     if files_new:
-        print(files_new)
         update_index(files_new, mode='add', mapping=map_index(files_new))
         create_object(files_new)
     elif not files:
@@ -143,7 +142,7 @@ def show_status(file_index):
     untracked = get_untracked(file_index)
     staged, unstaged = get_unstaged_staged()
     print('On branch master\n')
-    if not get_files_direc('.lgit/commits'):
+    if not listdir('.lgit/commits'):
         print("No commits yet\n")
     if staged:
         print("Changes to be committed:\n\
@@ -162,7 +161,7 @@ in working directory)\n")
   (use \"./lgit.py add <file>...\" to include in what will be committed)\n")
         print("\t", '\n\t'.join([format_path(p)
                                  for p in untracked]), sep='', end='\n\n')
-    if not get_files_direc('.lgit/commits') and untracked:
+    if not listdir('.lgit/commits') and untracked:
         print("nothing added to commit but untracked files\
  present (use \"./lgit.py add\" to track)")
 
