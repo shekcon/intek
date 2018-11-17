@@ -6,10 +6,13 @@ from os.path import split
 from datetime import datetime
 from argparse import ArgumentParser
 from time import time, mktime, strftime, localtime
+from hashlib import sha1
 
 
 def hash_sha1(file):
-    from hashlib import sha1
+    '''
+    Task: return hash sha1 of file passed
+    '''
     with open(file, 'rb') as f:
         return sha1(f.read()).hexdigest()
 
@@ -19,21 +22,23 @@ def split_dir_file(hash_file):
 
 
 def get_info_index(line):
+    '''
+    Task: return format timestamp, hash current, hash add, hash commit, path
+    '''
     line = line.strip()
-    # format timestamp, hash current, hash add, hash commit, path
     return line[0:14], line[15:55], line[56:96], line[97:137], line[138:]
 
 
-def map_index(files):
+def get_pos_track(files):
     '''
-    return dictionary of mapping line of file if have in index file
+    Task: return dictionary with key is file, value is location in index file
     '''
-    file_mapping = {}
+    locations = {}
     for index, line in enumerate(read_file('.lgit/index')):
-        _, _, _, _, name = get_info_index(line)
-        if name in files:
-            file_mapping[name] = index
-    return file_mapping
+        _, _, _, _, path = get_info_index(line)
+        if path in files:
+            locations[path] = index
+    return locations
 
 
 def read_file(file):
@@ -42,36 +47,56 @@ def read_file(file):
 
 
 def write_file(data, file):
-    # data is a list of string element
-    # default write index file
+    '''
+    Task: overwrite content of file from content passed
+    Param:
+        + data: list of string element
+        + file: path of file to write
+    '''
     with open(file, 'w') as f:
         f.writelines(data)
 
 
-def get_names_index():
-    names = []
+def get_tracked_files():
+    '''
+    Task: Return list tracked file in index file
+    '''
+    paths = []
     for line in read_file('.lgit/index'):
-        _, _, _, _, name = get_info_index(line)
-        names.append(name)
-    return names
+        _, _, _, _, file = get_info_index(line)
+        paths.append(file)
+    return paths
 
 
-def create_object(files):
-    for f in files:
-        hash_f = hash_sha1(f)
-        direc, file = split_dir_file(hash_f)
-        path = join('.lgit/objects', direc)
-        if not exists(path):
-            mkdir(path)
-        file = join(path, file)
-        if not exists(file):
-            write_file(data=read_file(f), file=file)
+def create_object(files_add):
+    '''
+    Task:
+        + Store a copy of the file content in the lgit database
+        + Each file will be stocked in the following way:
+            - first two characters of the SHA1 will be the directory name
+            - last 38 characters will be the file name
+    '''
+    for path in files_add:
+        hash_f = hash_sha1(path)
+        direc_obj, file_obj = split_dir_file(hash_f)
+        direc_obj = join('.lgit/objects', direc_obj)
+        if not exists(direc_obj):
+            mkdir(direc_obj)
+        file_obj = join(direc_obj, file_obj)
+        if not exists(file_obj):
+            write_file(read_file(path), file_obj)
 
 
-def handle_input(files):
+def handle_raw_input(files):
+    '''
+    Task:
+        + Return list valid file is relative with lgit directory
+        + Outside of lgit directory --> Show error
+        + Path does not exist --> Show error
+    '''
     files_new = []
     for f in files:
-        path = format_path(f, mode='add')
+        path = format_path(f, mode='absolute')
         if getcwd() in path:
             path = path.replace(getcwd() + "/", "")
             if isdir(path):
@@ -86,17 +111,25 @@ def handle_input(files):
     return files_new
 
 
-def add_git(files):
-    files_new = handle_input(files)
+def add_git(files_add):
+    '''
+    Task:
+        + Add untrack file or update unstaged file in index file
+        + Store a copy of the file content in the lgit database
+    '''
+    files_new = handle_raw_input(files_add)
     if files_new:
-        update_index(files_new, mode='add', mapping=map_index(files_new))
+        update_index(files_new, mode='add', location=get_pos_track(files_new))
         create_object(files_new)
-    elif not files:
+    elif not files_add:
         print("Nothing specified, nothing added.\n\
 Maybe you wanted to say 'git add .'?")
 
 
 def get_files_direc(direc='.'):
+    '''
+    Task: return list file in subdirectory passed and directory passed
+    '''
     dir_direc = [direc]
     file_direc = []
     # find all path of file in src
@@ -114,9 +147,9 @@ def get_files_direc(direc='.'):
     return file_direc
 
 
-def get_untracked(file_index):
+def get_untracked(tracked_files):
     all_files = get_files_direc()
-    return [f for f in all_files if f not in file_index]
+    return [file for file in all_files if file not in tracked_files]
 
 
 def get_staged_unstaged():
@@ -132,13 +165,13 @@ def get_staged_unstaged():
 
 
 def status_git():
-    file_index = get_names_index()
-    update_index(file_index, mode='status')
-    show_status(file_index)
+    tracked_files = get_tracked_files()
+    update_index(tracked_files, mode='status')
+    show_status(tracked_files)
 
 
-def show_status(file_index):
-    untracked = get_untracked(file_index)
+def show_status(tracked_files):
+    untracked = get_untracked(tracked_files)
     staged, unstaged = get_staged_unstaged()
     print('On branch master\n')
     if not listdir('.lgit/commits'):
@@ -147,18 +180,18 @@ def show_status(file_index):
         print("Changes to be committed:\n\
   (use \"./lgit.py reset HEAD ...\" to unstage)\n")
         print("\t modified:", '\n\t modified: '.join(
-            [format_path(p) for p in staged]), end='\n\n')
+            [format_path(p, mode='relative') for p in staged]), end='\n\n')
     if unstaged:
         print("Changes not staged for commit:\n\
   (use \"./lgit.py add ...\" to update what will be committed)\n\
   (use \"./lgit.py checkout -- ...\" to discard changes \
 in working directory)\n")
         print("\t modified:", '\n\t modified: '.join(
-            [format_path(p) for p in unstaged]), end='\n\n')
+            [format_path(p, mode='relative') for p in unstaged]), end='\n\n')
     if untracked:
         print("Untracked files:\n\
   (use \"./lgit.py add <file>...\" to include in what will be committed)\n")
-        print("\t", '\n\t'.join([format_path(p)
+        print("\t", '\n\t'.join([format_path(p, mode='relative')
                                  for p in untracked]), sep='', end='\n\n')
     if not listdir('.lgit/commits') and not staged and untracked:
         print("nothing added to commit but untracked files\
@@ -168,27 +201,35 @@ in working directory)\n")
 
 
 def commit_git(message):
-    file_index = get_names_index()
+    '''
+    Task:
+        + Update hash commit in index file
+        + Create name file is time commit in commits directory
+        + Create name file is time commit in snapshots directory
+        + Nothing added to commit then show status
+    '''
+    tracked_files = get_tracked_files()
     staged_file, _ = get_staged_unstaged()
     if staged_file:
-        update_index(file_index, mode='commit')
+        update_index(tracked_files, mode='commit')
         time_ns = format_time(time(), second=False)
         create_commit(message, time_ns)
         create_snapshot(join('.lgit/snapshots', time_ns))
     else:
-        show_status(file_index)
+        show_status(tracked_files)
 
 
-def create_commit(messa, time_ns):
+def create_commit(message, time_ns):
     # save commit message and author
-    author = read_file(file='.lgit/config')[0].strip() + '\n'
-    time_s = time_ns.split('.')[0] + '\n' + '\n'
-    write_file([author, time_s, messa + '\n'], join('.lgit/commits', time_ns))
+    author = read_file(file='.lgit/config')[0]
+    time_commit = time_ns.split('.')[0]
+    write_file(["%s%s\n\n%s\n" % (author, time_commit, message)],
+               join('.lgit/commits', time_ns))
 
 
 def create_snapshot(path):
-    # save hash commit all of name into
-    # timestamp of commit file
+    # save all of hash commit and path in index file
+    # into timestamp of commit file at snapshot directory
     data_snap = []
     for line in read_file('.lgit/index'):
         _, _, _, h_commit, name = get_info_index(line)
@@ -196,7 +237,17 @@ def create_snapshot(path):
     write_file(data_snap, file=path)
 
 
-def update_index(files, mode, mapping=''):
+def update_index(files, mode, location=''):
+    '''
+    Task: Update information of tracked file or untracked file in index file
+        + With add command:
+            - Update hash add and timestamp of file
+            - Or add new line infomation file added in index file
+        + With status command:
+            - Update hash current and timestamp of file in index file
+        + With commit command:
+            - Update hash commit of file in index file
+    '''
     data_index = read_file('.lgit/index')
     for i, file in enumerate(files):
         h_current = hash_sha1(file)
@@ -204,7 +255,7 @@ def update_index(files, mode, mapping=''):
             # get index from mapping index of file
             # hash add equal hash of file right now
             # commit maybe nothing or have before
-            line = mapping.get(file, -1)
+            line = location.get(file, -1)
             h_add = h_current
             if line != -1:
                 _, _, _, h_commit, _ = get_info_index(data_index[line])
@@ -218,8 +269,8 @@ def update_index(files, mode, mapping=''):
             _, _, h_add, h_commit, _ = get_info_index(data_index[line])
             if mode == 'commit':
                 h_commit = h_add
-        # only git add maybe have file so need add new one in index file
-        # else override on that line of that name file
+        # add new one in index file if first time tracking file
+        # else override on location of file in index file
         if line != -1:
             data_index[line] = format_index(format_time(
                 getmtime(file)), h_current, h_add, h_commit, file)
@@ -236,54 +287,53 @@ def format_date_log(timestamp):
     hour = int(timestamp[8: 10])
     minute = int(timestamp[10: 12])
     second = int(timestamp[12: 14])
-    date = (year, moth, day, hour, minute, second, 0, 0, 0)
-    date = mktime(date)
+    # create Epoch time
+    date = mktime((year, moth, day, hour, minute, second, 0, 0, 0))
     return strftime("%a %b %d %H:%M:%S %Y", localtime(date))
 
 
 def log_git():
     for commit in sorted(listdir(".lgit/commits"), key=str, reverse=True):
-        data_commit = read_file(join(".lgit/commits", commit))
-        date = format_date_log(data_commit[1].strip())
-        print("commit", commit)
-        print("Author:", data_commit[0].strip())
-        print("Date:", date, end="\n\n")
-        print("\t", data_commit[3].strip(), sep='', end="\n\n\n")
+        time_commit, author, message = get_info_commit(commit)
+        date = format_date_log(time_commit)
+        print("commit %s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
+              (commit, author, date, message))
+
+
+def get_info_commit(commit):
+    data = read_file(join(".lgit/commits", commit))
+    # format time commit, author, message commit
+    return data[1].strip(), data[0].strip(), data[3].strip()
 
 
 def ls_files_git():
-    files = get_names_index()
+    files = get_trackfile_cwd(get_tracked_files())
+    if files:
+        print("\n".join(sorted(files, key=str)))
+
+
+def get_trackfile_cwd(tracked_files):
     file_current = []
-    for f in files:
-        path = format_path(f)
+    for file in tracked_files:
+        path = format_path(file, mode='relative')
         if not path.startswith('../'):
             file_current.append(path)
-    print("\n".join(sorted(file_current, key=str)))
-    # print("\n".join(sorted(files, key=str)))
+    return file_current
 
 
 def rm_git(files):
-    files_new = handle_input(files)
-    files_index = get_names_index()
+    files_new = handle_raw_input(files)
     if files_new:
         data_index = read_file(file='.lgit/index')
-        mapping = map_index(files_new)
+        location = get_pos_track(files_new)
         for file in files_new:
-            line = mapping.get(file, -1)  # get location of file
+            line = location.get(file, -1)  # get location of file
             # if not in index file print error
             if line != -1:
-                # print(file)
                 if exists(file):
                     remove(file)
+                    remove_empty_dirs(file)
                 data_index[line] = ""
-                head, _ = split(file)
-                # remove directory if it empty directory
-                while head:
-                    if not listdir(head):
-                        rmdir(head)
-                        head, _ = split(head)
-                        continue
-                    break
             else:
                 print("fatal: pathspec '" + file + "' did not match any files")
         write_file(data_index, file='.lgit/index')
@@ -291,30 +341,44 @@ def rm_git(files):
         print('missing argument of file to removed')
 
 
+def remove_empty_dirs(path):
+    head, _ = split(path)
+    # remove directory if it empty directory
+    while head:
+        if listdir(head):
+            return
+        rmdir(head)
+        head, _ = split(head)
+
+
 def init_git():
-    direc = ('.lgit/objects', '.lgit/commits', '.lgit/snapshots')
-    file = ('.lgit/index', '.lgit/config')
-    reinit_d = [d for d in direc if not isdir(d)]
-    reinit_f = [f for f in file if not isfile(f)]
+    direcs = ('.lgit/objects', '.lgit/commits', '.lgit/snapshots')
+    files = ('.lgit/index', '.lgit/config')
+    init_d = [d for d in direcs if not isdir(d)]
+    init_f = [f for f in files if not isfile(f)]
     if not exists('.lgit'):
         mkdir('.lgit')
     elif isfile('.lgit'):
         print('fatal: Invalid gitfile format: .lgit')
         return
-    for d in reinit_d:
+    for d in init_d:
         if isfile(d):
             print(join(getcwd(), dir) + ": Not a directory")
         else:
             mkdir(d)
-    for f in reinit_f:
+    for f in init_f:
         if not isdir(f):
             open(f, 'w').close()
         else:
             print('error: unable to mmap ' + join(getcwd(), f)
                   + ' Is a directory')
-    write_file(data=[environ.get('LOGNAME')], file='.lgit/config')
-    if not (reinit_d or reinit_f):
+    config_author(environ.get('LOGNAME'))
+    if len(init_f) + len(init_d) < 5:
         print('Git repository already initialized.')
+
+
+def config_author(name):
+    write_file(['%s\n' % (name)], file='.lgit/config')
 
 
 def find_parent_git():
@@ -327,10 +391,10 @@ def find_parent_git():
     return False
 
 
-def format_path(path, mode='status'):
-    if mode == 'add':
+def format_path(path, mode):
+    if mode == 'absolute':
         return abspath(join(cwd_path, path))
-    elif mode == 'status':
+    elif mode == 'relative':
         return relpath(join(getcwd(), path), start=cwd_path)
 
 
@@ -370,7 +434,7 @@ def main():
             elif args.command == 'commit':
                 commit_git(args.message)
             elif args.command == 'config':
-                write_file([args.author + '\n'], file='.lgit/config')
+                config_author(args.author)
             elif args.command == 'ls-files':
                 ls_files_git()
             elif args.command == 'log':
@@ -384,6 +448,8 @@ def main():
 of the parent directories)')
     except FileNotFoundError:
         print('fatal: not a git repository (or any of the parent directories)')
+    except IsADirectoryError:
+        pass
 
 
 if __name__ == '__main__':
