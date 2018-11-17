@@ -118,7 +118,7 @@ def get_untracked(file_index):
     return [f for f in all_files if f not in file_index]
 
 
-def get_unstaged_staged():
+def get_staged_unstaged():
     staged_file = []
     unstaged_file = []
     for line in read_file(file='.lgit/index'):
@@ -138,7 +138,7 @@ def status_git():
 
 def show_status(file_index):
     untracked = get_untracked(file_index)
-    staged, unstaged = get_unstaged_staged()
+    staged, unstaged = get_staged_unstaged()
     print('On branch master\n')
     if not listdir('.lgit/commits'):
         print("No commits yet\n")
@@ -159,17 +159,23 @@ in working directory)\n")
   (use \"./lgit.py add <file>...\" to include in what will be committed)\n")
         print("\t", '\n\t'.join([format_path(p)
                                  for p in untracked]), sep='', end='\n\n')
-    if not listdir('.lgit/commits') and untracked:
+    if not listdir('.lgit/commits') and not staged and untracked:
         print("nothing added to commit but untracked files\
  present (use \"./lgit.py add\" to track)")
+    elif not staged:
+        print('no changes added to commit')
 
 
 def commit_git(message):
     file_index = get_names_index()
-    update_index(file_index, mode='commit')
-    time_ns = format_time(time(), second=False)
-    create_commit(message, time_ns)
-    create_snapshot(join('.lgit/snapshots', time_ns))
+    staged_file, _ = get_staged_unstaged()
+    if staged_file:
+        update_index(file_index, mode='commit')
+        time_ns = format_time(time(), second=False)
+        create_commit(message, time_ns)
+        create_snapshot(join('.lgit/snapshots', time_ns))
+    else:
+        show_status(file_index)
 
 
 def create_commit(message, time_ns):
@@ -265,11 +271,11 @@ def format_path(path, mode='status'):
         return relpath(join(getcwd(), path), start=cwd_path)
 
 
-def format_time(time, second=True):
-    time = datetime.fromtimestamp(time)
+def format_time(timestamp, second=True):
+    timestamp = datetime.fromtimestamp(timestamp)
     if second:
-        return time.strftime('%Y%m%d%H%M%S')
-    return time.strftime('%Y%m%d%H%M%S.%f')
+        return timestamp.strftime('%Y%m%d%H%M%S')
+    return timestamp.strftime('%Y%m%d%H%M%S.%f')
 
 
 # get string format index
