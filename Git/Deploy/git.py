@@ -229,7 +229,6 @@ def update_index(files, mode, mapping=''):
     write_file(data_index, file='.lgit/index')
 
 
-<<<<<<< HEAD
 def format_date_log(timestamp):
     year = int(timestamp[0: 4])
     moth = int(timestamp[4: 6])
@@ -261,43 +260,10 @@ def ls_files_git():
             file_current.append(path)
     print("\n".join(sorted(file_current, key=str)))
     # print("\n".join(sorted(files, key=str)))
-=======
-def format_time_log(a):
-   year = int (a[0:4])
-   moth = int(a[4:6])
-   day = int(a[6:8])
-   hour = int(a[8:10])
-   minute = int(a[10:12])
-   second = int(a[12:14])
-   t = (year, moth, day, hour, minute, second, 0, 0, 0)
-   t = mktime(t)
-   return strftime("%a %b %d %H:%M:%S %Y", localtime(t))
-
-
-def log_git():
-   for f in sorted(listdir(".lgit/commits"), key=str, reverse=True):
-        commits = read_file(".lgit/commits/" + f)
-        t = format_time_log(commits[1].strip())
-        print("commit",f)
-        print("Author:", commits[0].strip())
-        print("Date:", t, end="\n\n")
-        print("\t", commits[3], sep='', end="\n\n\n")
-
-
-def ls_files_git():
-   files = get_names_index()
-   file_current = []
-   for f in files:
-       path = format_path(f)
-       if not path.startswith('../'):
-           file_current.append(path)
-   print("\n".join(sorted(file_current, key=str)))
->>>>>>> 4bd3e7b6e9d09591ff3870f54e11923be8f5a8c6
 
 
 def rm_git(files):
     files_new = handle_input(files)
-<<<<<<< HEAD
     files_index = get_names_index()
     if files_new:
         data_index = read_file(file='.lgit/index')
@@ -320,24 +286,6 @@ def rm_git(files):
                     break
             else:
                 print("fatal: pathspec '" + file + "' did not match any files")
-=======
-    if files_new:
-        data_index = read_file(file='.lgit/index')
-        mapping = map_index(files_new)
-        for f in files:
-           line = mapping.get(f, -1) # vi tri line
-           if exists(f):
-               remove(f)
-           data_index[line] = ""
-           head, _ = split(f)
-           # remove directory if it empty directory
-           while head:
-               if not listdir(head):
-                   rmdir(head)
-                   head, _ = split(head)
-                   continue
-               break
->>>>>>> 4bd3e7b6e9d09591ff3870f54e11923be8f5a8c6
         write_file(data_index, file='.lgit/index')
     elif not files:
         print('missing argument of file to removed')
