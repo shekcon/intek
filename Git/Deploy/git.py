@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-from os import mkdir, environ, scandir, getcwd, chdir, listdir
+from os import mkdir, environ, scandir, getcwd, chdir, listdir, rmdir, remove
 from os.path import join, getmtime, exists, isfile, isdir, relpath, abspath
+from os.path import split
 from datetime import datetime
 from argparse import ArgumentParser
-from time import time
+from time import time, mktime, strftime, localtime
 
 
 def hash_sha1(file):
@@ -18,9 +19,9 @@ def split_dir_file(hash_file):
 
 
 def get_info_index(line):
-    line = line.strip().split(' ')
+    line = line.strip()
     # format timestamp, hash current, hash add, hash commit, path
-    return line[0], line[1], line[2], line[3], line[-1]
+    return line[0:14], line[15:55], line[56:96], line[97:137], line[138:]
 
 
 def map_index(files):
@@ -178,11 +179,11 @@ def commit_git(message):
         show_status(file_index)
 
 
-def create_commit(message, time_ns):
+def create_commit(messa, time_ns):
     # save commit message and author
-    author = read_file(file='.lgit/config')[0] + '\n'
+    author = read_file(file='.lgit/config')[0].strip() + '\n'
     time_s = time_ns.split('.')[0] + '\n' + '\n'
-    write_file([author, time_s, message], join('.lgit/commits', time_ns))
+    write_file([author, time_s, messa + '\n'], join('.lgit/commits', time_ns))
 
 
 def create_snapshot(path):
@@ -226,6 +227,68 @@ def update_index(files, mode, mapping=''):
             data_index.append(format_index(format_time(
                 getmtime(file)), h_current, h_add, h_commit, file))
     write_file(data_index, file='.lgit/index')
+
+
+def format_date_log(timestamp):
+    year = int(timestamp[0: 4])
+    moth = int(timestamp[4: 6])
+    day = int(timestamp[6: 8])
+    hour = int(timestamp[8: 10])
+    minute = int(timestamp[10: 12])
+    second = int(timestamp[12: 14])
+    date = (year, moth, day, hour, minute, second, 0, 0, 0)
+    date = mktime(date)
+    return strftime("%a %b %d %H:%M:%S %Y", localtime(date))
+
+
+def log_git():
+    for commit in sorted(listdir(".lgit/commits"), key=str, reverse=True):
+        data_commit = read_file(join(".lgit/commits", commit))
+        date = format_date_log(data_commit[1].strip())
+        print("commit", commit)
+        print("Author:", data_commit[0].strip())
+        print("Date:", date, end="\n\n")
+        print("\t", data_commit[3].strip(), sep='', end="\n\n\n")
+
+
+def ls_files_git():
+    files = get_names_index()
+    file_current = []
+    for f in files:
+        path = format_path(f)
+        if not path.startswith('../'):
+            file_current.append(path)
+    print("\n".join(sorted(file_current, key=str)))
+    # print("\n".join(sorted(files, key=str)))
+
+
+def rm_git(files):
+    files_new = handle_input(files)
+    files_index = get_names_index()
+    if files_new:
+        data_index = read_file(file='.lgit/index')
+        mapping = map_index(files_new)
+        for file in files_new:
+            line = mapping.get(file, -1)  # get location of file
+            # if not in index file print error
+            if line != -1:
+                # print(file)
+                if exists(file):
+                    remove(file)
+                data_index[line] = ""
+                head, _ = split(file)
+                # remove directory if it empty directory
+                while head:
+                    if not listdir(head):
+                        rmdir(head)
+                        head, _ = split(head)
+                        continue
+                    break
+            else:
+                print("fatal: pathspec '" + file + "' did not match any files")
+        write_file(data_index, file='.lgit/index')
+    elif not files:
+        print('missing argument of file to removed')
 
 
 def init_git():
@@ -309,14 +372,11 @@ def main():
             elif args.command == 'config':
                 write_file([args.author + '\n'], file='.lgit/config')
             elif args.command == 'ls-files':
-                # TODO: ltung working on
-                print("working on")
+                ls_files_git()
             elif args.command == 'log':
-                # TODO: ltung working on
-                print("working on")
+                log_git()
             elif args.command == 'rm':
-                # TODO: ltung working on
-                print("working on")
+                rm_git(args.files)
             else:
                 print("Git: '" + args.command + "' is not a git command.")
         else:
