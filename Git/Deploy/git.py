@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-from os import mkdir, environ, scandir, getcwd, chdir, listdir
+from os import mkdir, environ, scandir, getcwd, chdir, listdir, rmdir, remove
 from os.path import join, getmtime, exists, isfile, isdir, relpath, abspath
+from os.path import split
 from datetime import datetime
 from argparse import ArgumentParser
-from time import time
+from time import time, mktime, strftime, localtime
 
 
 def hash_sha1(file):
@@ -18,9 +19,9 @@ def split_dir_file(hash_file):
 
 
 def get_info_index(line):
-    line = line.strip().split(' ')
+    line = line.strip()
     # format timestamp, hash current, hash add, hash commit, path
-    return line[0], line[1], line[2], line[3], line[-1]
+    return line[0:14], line[15:55], line[56:96], line[97:137], line[138:]
 
 
 def map_index(files):
@@ -228,6 +229,61 @@ def update_index(files, mode, mapping=''):
     write_file(data_index, file='.lgit/index')
 
 
+def format_time_log(a):
+   year = int (a[0:4])
+   moth = int(a[4:6])
+   day = int(a[6:8])
+   hour = int(a[8:10])
+   minute = int(a[10:12])
+   second = int(a[12:14])
+   t = (year, moth, day, hour, minute, second, 0, 0, 0)
+   t = mktime(t)
+   return strftime("%a %b %d %H:%M:%S %Y", localtime(t))
+
+
+def log_git():
+   for f in sorted(listdir(".lgit/commits"), key=str, reverse=True):
+        commits = read_file(".lgit/commits/" + f)
+        t = format_time_log(commits[1].strip())
+        print("commit",f)
+        print("Author:", commits[0].strip())
+        print("Date:", t, end="\n\n")
+        print("\t", commits[3], sep='', end="\n\n\n")
+
+
+def ls_files_git():
+   files = get_names_index()
+   file_current = []
+   for f in files:
+       path = format_path(f)
+       if not path.startswith('../'):
+           file_current.append(path)
+   print("\n".join(sorted(file_current, key=str)))
+
+
+def rm_git(files):
+    files_new = handle_input(files)
+    if files_new:
+        data_index = read_file(file='.lgit/index')
+        mapping = map_index(files_new)
+        for f in files:
+           line = mapping.get(f, -1) # vi tri line
+           if exists(f):
+               remove(f)
+           data_index[line] = ""
+           head, _ = split(f)
+           # remove directory if it empty directory
+           while head:
+               if not listdir(head):
+                   rmdir(head)
+                   head, _ = split(head)
+                   continue
+               break
+        write_file(data_index, file='.lgit/index')
+    elif not files:
+        print('missing argument of file to removed')
+
+
 def init_git():
     direc = ('.lgit/objects', '.lgit/commits', '.lgit/snapshots')
     file = ('.lgit/index', '.lgit/config')
@@ -309,14 +365,11 @@ def main():
             elif args.command == 'config':
                 write_file([args.author + '\n'], file='.lgit/config')
             elif args.command == 'ls-files':
-                # TODO: ltung working on
-                print("working on")
+                ls_files_git()
             elif args.command == 'log':
-                # TODO: ltung working on
-                print("working on")
+                log_git()
             elif args.command == 'rm':
-                # TODO: ltung working on
-                print("working on")
+                rm_git(args.files)
             else:
                 print("Git: '" + args.command + "' is not a git command.")
         else:
