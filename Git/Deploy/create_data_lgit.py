@@ -1,13 +1,21 @@
 from get_data_lgit import get_info_config, get_info_index
-from os.path import split, join
-from utils import write_file, read_file
+from os.path import split, join, exists
+from os import mkdir
+from utils import write_file, read_file, hash_sha1, split_dir_file
+from get_data_lgit import get_head_commit
+
+
+def create_branch(name):
+    _, branch, _ = get_info_config()
+    write_file(['%s\n' % (get_head_commit(branch))],
+               '.lgit/refs/HEAD/%s' % (name))
 
 
 def create_commit(message, time_ns):
     # save commit message and author
     author, _, _ = get_info_config()
     time_commit = time_ns.split('.')[0]
-    write_file(["%s%s\n\n%s\n" % (author, time_commit, message)],
+    write_file(["%s\n%s\n\n%s\n" % (author, time_commit, message)],
                join('.lgit/commits', time_ns))
 
 
@@ -37,4 +45,4 @@ def create_object(files_add):
             mkdir(direc_obj)
         file_obj = join(direc_obj, file_obj)
         if not exists(file_obj):
-            write_file(read_file(path), file_obj)
+            write_file(read_file(path, mode='rb'), file_obj, mode='wb')

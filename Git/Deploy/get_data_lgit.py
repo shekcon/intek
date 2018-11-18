@@ -1,7 +1,26 @@
-from utils import read_file, split_dir_file, get_files_direc
+from utils import read_file, split_dir_file, get_files_direc, hash_sha1
 from os.path import join
 from os import listdir
-from get_data_lgit import get_info_index
+
+
+def get_modified_headcommit():
+    _, _, head_commit = get_info_config()
+    files_commit = get_files_hash(head_commit)
+    modified_file = []
+    for file in files_commit.keys():
+        if hash_sha1(file) != files_commit[file]:
+            modified_file.append(file)
+    return modified_file
+
+
+def get_files_hash(commit):
+    snapshot = read_file(join('.lgit/snapshots', commit))
+    files_hash = {}
+    for line in snapshot:
+        hash_f, file = get_info_snap(line)
+        files_hash[file] = hash_f
+    return files_hash
+
 
 def get_staged_unstaged():
     staged_file = []
@@ -23,7 +42,7 @@ def get_tracked_unstracked():
     for line in read_file('.lgit/index'):
         _, _, _, _, file = get_info_index(line)
         tracked.append(file)
-    unstracked = [file for file in get_files_direc() if file not in tracked]
+    untracked = [file for file in get_files_direc() if file not in tracked]
     return tracked, untracked
 
 
@@ -41,7 +60,7 @@ def get_pos_track(files):
 
 def get_data_object(hash_commit):
     direc, file = split_dir_file(hash_commit)
-    return read_file(join(join('.lgit/objects', direc), file))
+    return read_file(join(join('.lgit/objects', direc), file), mode='rb')
 
 
 def get_all_commits():

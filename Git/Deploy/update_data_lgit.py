@@ -1,11 +1,14 @@
 from utils import read_file, write_file, hash_sha1
 from get_data_lgit import get_info_index, get_info_config
 from get_data_lgit import get_data_object, get_info_snap
+from get_data_lgit import get_staged_unstaged, get_tracked_commit
+from get_data_lgit import get_pos_track, get_files_hash
 from format_data_lgit import format_index, format_time
-from os.path import getmtime
+from os.path import getmtime, exists, join
+from os import remove
 
 
-def update_index(files, mode, location=''):
+def update_index(files_update, mode):
     '''
     Task: Update information of tracked file or untracked file in index file
         + With add command:
@@ -17,37 +20,27 @@ def update_index(files, mode, location=''):
             - Update hash commit of file in index file
     '''
     data_index = read_file('.lgit/index')
-    for i, file in enumerate(files):
-        if not exists(file):
-            continue
+    location = get_pos_track(files_update)
+    for file in files_update:
         h_current = hash_sha1(file)
+        line = location.get(file, -1)
         if mode == 'add':
-            # get index from mapping index of file
-            # hash add equal hash of file right now
-            # commit maybe nothing or have before
-            line = location.get(file, -1)
             h_add = h_current
             if line != -1:
                 _, _, _, h_commit, _ = get_info_index(data_index[line])
             else:
                 h_commit = ''
         else:
-            # index equal enunumerate coz run all name file in index file
-            # hash add equal last time add of file
-            # commit equal hash add if commit else still be same in last time
-            line = i
             _, _, h_add, h_commit, _ = get_info_index(data_index[line])
             if mode == 'commit':
                 h_commit = h_add
-        # add new one in index file if first time tracking file
-        # else override on location of file in index file
         if line != -1:
             data_index[line] = format_index(format_time(
                 getmtime(file)), h_current, h_add, h_commit, file)
         else:
             data_index.append(format_index(format_time(
                 getmtime(file)), h_current, h_add, h_commit, file))
-    write_file(data_index, file='.lgit/index')
+    write_file(data_index, file='.lgit/index')  
 
 
 def update_head_branch(time_commit):
@@ -56,19 +49,16 @@ def update_head_branch(time_commit):
 
 
 def update_files_commit(timecommit):
-    snapshot = read_file(join('.lgit/snapshots', timecommit))
-    staged, unstaged = get_staged_unstaged()
-    files_update = staged + unstaged
-    for line in snapshot:
-        hash_f, file = get_info_snap(line)
-        if file not in files_update:
-            content = get_data_object(hash_f)
-            write_file(content, file)
+    files_commit = get_files_hash(timecommit)
+    files_update = []
+    for file in files_commit.keys():
+        content = get_data_object(files_commit[file])
+        write_file(content, file, mode='wb')
         files_update.append(file)
     return files_update
 
 
-def remove_untrack_commit(files_update):
+def rm_untrack_commit(files_update):
     _, _, commit = get_info_config()
     tracked_files = get_tracked_commit(commit)
     unstrack_rm = [f for f in tracked_files if f not in files_update]
