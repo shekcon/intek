@@ -2,26 +2,41 @@
 
 from os import mkdir, environ, scandir, getcwd, chdir, listdir, remove
 from os.path import join, exists, isfile, isdir, relpath, abspath, split
-from os import makedirs
+from os import makedirs, access, R_OK
 from argparse import ArgumentParser
 from time import time
-from get_data_lgit import get_info_config, get_all_commits
-from utils import read_file, write_file
+from get_data_lgit import get_info_config, get_all_commits, get_pos_track
+from get_data_lgit import get_tracked_unstracked, get_staged_unstaged
+from get_data_lgit import get_info_commit, get_head_commit
+from get_data_lgit import get_modified_headcommit
+from update_data_lgit import update_files_commit, rm_untrack_commit
+from utils import read_file, write_file, get_files_direc, remove_empty_dirs
+from utils import rm_head_lgit, hash_sha1
+from update_data_lgit import update_index, update_head_branch
+from create_data_lgit import create_object, create_commit, create_snapshot, create_branch
+from format_data_lgit import format_index, format_time, format_date_log
 import print_message
 
 
-# TODO: fix conflict
-# def checkout_git(timecommit):
-#     _, branch, commit = get_info_config()
-#     head_commit = get_head_commit(branch)
-#     if commit == head_commit:
-#         update_index(get_tracked_files(), mode='status')
-#     timecommit = timecommit[0]
-#     commits = get_commits()
-#     if timecommit in commits:
-#         rm_untracked_commit(switch_files_commit(timecommit))
-#         config_git(head=timecommit)
+def branch_git(name):
+    create_branch(name)
+    print("create new branch %s" % (name))
 
+
+def checkout_git(commit):
+    modified_file = get_modified_headcommit()
+    if not modified_file and is_valid_commit(commit):
+        rm_untrack_commit(update_files_commit(commit))
+        config_git(head=commit)
+        print("head now is %s" % (commit))
+    else:
+        print_message.ERROR_CHECKOUT(
+            [format_path(p, mode='relative') for p in modified_file])
+
+
+def is_valid_commit(timecommit):
+    commits = get_all_commits()
+    return timecommit in commits
 
 
 def config_git(author='', branch='', head=''):
@@ -36,28 +51,47 @@ def config_git(author='', branch='', head=''):
                 (aut, bra, he)], file='.lgit/config')
 
 
-def handle_raw_input(files):
+def handle_raw_input(files_user):
     '''
     Task:
         + Return list valid file is relative with lgit directory
+        + Directory --> find all of files in directory --> handle input again to get valid file
+        + File --> file is valid --> add it to valid files
         + Outside of lgit directory --> Show error
+    Param: list of file or directory
+    '''
+    valid_files = []
+    for file in files_user:
+        path = format_path(file, mode='absolute')
+        if is_inside_lgit(path):
+            path = rm_head_lgit(path)
+            if isdir(path):
+                sub_files = get_files_direc(path)
+                valid_files = valid_files + handle_raw_input(sub_files)
+            elif is_valid_file(path, file):
+                valid_files.append(path)
+        else:
+            print_message.OUTSIDE_DIRECTORY(file)
+    return valid_files
+
+
+def is_valid_file(path, file):
+    '''
+    Task: Return True if file is valid
+        + File do not have permission to read --> Show error
         + Path does not exist --> Show error
     '''
-    files_new = []
-    for f in files:
-        path = format_path(f, mode='absolute')
-        if getcwd() in path:
-            path = path.replace(getcwd() + "/", "")
-            if isdir(path):
-                sub_file = get_files_direc(path)
-                files_new = files_new + sub_file
-            elif exists(path):
-                files_new.append(path)
-            else:
-                print("fatal: pathspec '" + f + "' did not match any files")
-        else:
-            print("fatal: %s '%s' is outside repository" % (f, f))
-    return files_new
+    if exists(path) and access(path, mode=R_OK):
+        return True
+    elif not access(path, mode=R_OK):
+        print_message.PERMISSION_DENIED_READ(file)
+    else:
+        print_message.NOT_MATCH_FILE(file)
+    return False
+
+
+def is_inside_lgit(path):
+    return getcwd() in path
 
 
 def add_git(files_add):
@@ -68,17 +102,23 @@ def add_git(files_add):
     '''
     files_new = handle_raw_input(files_add)
     if files_new:
-        update_index(files_new, mode='add', location=get_pos_track(files_new))
+        update_index(files_new, mode='add')
         create_object(files_new)
     elif not files_add:
-        print("Nothing specified, nothing added.\n\
-Maybe you wanted to say 'git add .'?")
+        print_message.NOTHING_TO_ADDED()
 
 
 def status_git():
-    tracked, _ = get_tracked_unstracked()
-    update_index(tracked, mode='status')
-    show_status()
+    if is_last_commit():
+        tracked, _ = get_tracked_unstracked()
+        update_index(tracked, mode='status')
+        show_status()
+
+
+def is_last_commit():
+    _, branch, head_commit = get_info_config()
+    last_commit = get_head_commit(branch)
+    return head_commit != last_commit
 
 
 def show_status():
@@ -89,17 +129,14 @@ def show_status():
     if not get_all_commits():
         print_message.NO_COMMITS_YET()
     if staged:
-        print_message.READY_COMMITTED()
-        print("\t modified:", '\n\t modified: '.join(
-            [format_path(p, mode='relative') for p in staged]), end='\n\n')
+        print_message.READY_COMMITTED(
+            [format_path(p, mode='relative') for p in staged])
     if unstaged:
-        print_message.TRACKED_MODIFIED()
-        print("\t modified:", '\n\t modified: '.join(
-            [format_path(p, mode='relative') for p in unstaged]), end='\n\n')
+        print_message.TRACKED_MODIFIED(
+            [format_path(p, mode='relative') for p in unstaged])
     if untracked:
-        print_message.UNTRACKED_FILE()
-        print("\t", '\n\t'.join([format_path(p, mode='relative')
-                                 for p in untracked]), sep='', end='\n\n')
+        print_message.UNTRACKED_FILE(
+            [format_path(p, mode='relative') for p in untracked])
     if not get_all_commits() and not staged and untracked:
         print_message.NO_ADDED_BUT_UNTRACKED()
     elif not staged:
@@ -116,7 +153,7 @@ def commit_git(message):
     '''
     tracked_files, _ = get_tracked_unstracked()
     staged_files, _ = get_staged_unstaged()
-    if staged_file:
+    if staged_files:
         update_index(tracked_files, mode='commit')
         time_commit = format_time(time(), second=False)
         create_commit(message, time_commit)
@@ -136,7 +173,8 @@ def log_git():
 
 
 def ls_files_git():
-    files = get_trackfile_cwd(get_tracked_files())
+    tracked_file, _ = get_tracked_unstracked()
+    files = get_trackfile_cwd(tracked_file)
     if files:
         print("\n".join(sorted(files, key=str)))
 
@@ -164,7 +202,8 @@ def rm_git(files):
                     remove_empty_dirs(file)
                 data_index[line] = ""
             else:
-                print("fatal: pathspec '" + file + "' did not match any files")
+                print_message.NOT_MATCH_FILE(
+                    format_path(file, mode='relative'))
         write_file(data_index, file='.lgit/index')
     elif not files:
         print('missing argument of file to removed')
@@ -246,12 +285,23 @@ def main():
             elif args.command == 'rm':
                 rm_git(args.files)
             elif args.command == 'checkout':
-                checkout_git(args.files)
+                if len(args.files) == 1:
+                    checkout_git(args.files[0])
+                elif len(args.files) > 1:
+                    print("invalid argument commit passed into checkout")
+                else:
+                    print("missing argument commit to checkout")
+            elif args.command == 'branch':
+                if not args.files:
+                    _, branch, _ = get_info_config()
+                    print('*%s' % (branch))
+                else:
+                    branch_git(args.files[0])
             else:
                 print("Git: '" + args.command + "' is not a git command.")
         else:
             print('fatal: not a git repository (or any \
-    of the parent directories)')
+of the parent directories)')
     except FileNotFoundError:
         print('fatal: not a git repository (or any of the parent directories)')
     except IsADirectoryError:
