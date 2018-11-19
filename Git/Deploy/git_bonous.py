@@ -39,16 +39,8 @@ def is_valid_commit(timecommit):
     return timecommit in commits
 
 
-def config_git(author='', branch='', head=''):
-    aut, bra, he = get_info_config()
-    if author:
-        aut = author
-    if branch:
-        bra = branch
-    if head:
-        he = head
-    write_file(['%s\nbranch: %s\nhead: %s\n' %
-                (aut, bra, he)], file='.lgit/config')
+def config_git(author):
+    write_file(['%s\n' % (author)], file='.lgit/config')
 
 
 def handle_raw_input(files_user):
@@ -165,8 +157,10 @@ def commit_git(message):
 
 
 def log_git():
-    for commit in sorted(get_all_commits(), key=str, reverse=True):
-        time_commit, author, message = get_info_commit(commit)
+    _, branch, _ = get_info_config()
+    p_commit = get_head_commit(branch)
+    while p_commit:
+        time_commit, author, p_commit, message = get_info_commit(commit)
         date = format_date_log(time_commit)
         print("commit %s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
               (commit, author, date, message))
@@ -211,8 +205,8 @@ def rm_git(files):
 
 def init_git():
     direcs = ('.lgit/objects', '.lgit/commits',
-              '.lgit/snapshots', '.lgit/refs/HEAD')
-    files = ('.lgit/index', '.lgit/config', '.lgit/refs/HEAD/master')
+              '.lgit/snapshots', '.lgit/refs/heads')
+    files = ('.lgit/index', '.lgit/config', '.lgit/refs/heads/master', '.lgit/HEAD')
     init_d = [d for d in direcs if not isdir(d)]
     init_f = [f for f in files if not isfile(f)]
     if not exists('.lgit'):
@@ -231,8 +225,8 @@ def init_git():
         else:
             print('error: unable to mmap ' + join(getcwd(), f)
                   + ' Is a directory')
-    config_git(author=environ.get('LOGNAME'), branch='master')
-    if len(init_f) + len(init_d) < 5:
+    config_git(author=environ.get('LOGNAME'))
+    if len(init_f) + len(init_d) < 8:
         print('Git repository already initialized.')
 
 

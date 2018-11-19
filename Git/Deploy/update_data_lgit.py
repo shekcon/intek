@@ -40,12 +40,13 @@ def update_index(files_update, mode):
         else:
             data_index.append(format_index(format_time(
                 getmtime(file)), h_current, h_add, h_commit, file))
-    write_file(data_index, file='.lgit/index')  
+    write_file(data_index, file='.lgit/index')
 
 
-def update_head_branch(time_commit):
-    _, branch, _ = get_info_config()
-    write_file(['%s\n' % (time_commit)], join('.lgit/refs/HEAD', branch))
+# def update_head_branch(time_commit):
+#     # _, branch, _ = get_info_config()
+#     branch =
+#     write_file(['%s\n' % (time_commit)], join('.lgit/refs/heads', branch))
 
 
 def update_files_commit(timecommit):

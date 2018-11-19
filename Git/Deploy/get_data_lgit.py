@@ -2,9 +2,15 @@ from utils import read_file, split_dir_file, get_files_direc, hash_sha1
 from os.path import join
 from os import listdir
 
+def get_last_commit():
+    last_commit = sorted(listdir('.lgit/commits'), reverse=True)
+    if last_commit:
+        return last_commit[0]
+    return ''
+
 
 def get_modified_headcommit():
-    _, _, head_commit = get_info_config()
+    head_commit = get_commit_branch()
     files_commit = get_files_hash(head_commit)
     modified_file = []
     for file in files_commit.keys():
@@ -88,20 +94,16 @@ def get_info_snap(line):
     return line[:40], line[41:]
 
 
-def get_info_config():
-    data = read_file('.lgit/config')
-    # format author, branch, head
-    if data:
-        return data[0].strip(), data[1].strip()[8:], data[2].strip()[6:]
-    # first time get infomation config is empty
-    return '', 'master', ''
+def get_branch_now():
+    data = read_file('.lgit/HEAD').strip()
+    return data[16:]
+
+
+def get_commit_branch():
+    return read_file(join('.lgit/refs/heads/', get_branch_now())).strip()
 
 
 def get_info_commit(commit):
     data = read_file(join(".lgit/commits", commit))
-    # format time commit, author, message commit
-    return data[1].strip(), data[0].strip(), data[3].strip()
-
-
-def get_head_commit(branch):
-    return read_file(join('.lgit/refs/HEAD/', branch))[0].strip()
+    # format time commit, author, parent commit, message commit
+    return data[1].strip(), data[0].strip(), data[2].strip(), data[4].strip()

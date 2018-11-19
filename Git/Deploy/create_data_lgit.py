@@ -2,7 +2,7 @@ from get_data_lgit import get_info_config, get_info_index
 from os.path import split, join, exists
 from os import mkdir
 from utils import write_file, read_file, hash_sha1, split_dir_file
-from get_data_lgit import get_head_commit
+from get_data_lgit import get_head_commit, get_last_commit
 
 
 def create_branch(name):
@@ -14,8 +14,9 @@ def create_branch(name):
 def create_commit(message, time_ns):
     # save commit message and author
     author, _, _ = get_info_config()
-    time_commit = time_ns.split('.')[0]
-    write_file(["%s\n%s\n\n%s\n" % (author, time_commit, message)],
+    t_commit = time_ns.split('.')[0]
+    l_commit = get_last_commit()
+    write_file(["%s\n%s\n%s\n\n%s\n" % (author, t_commit, l_commit, message)],
                join('.lgit/commits', time_ns))
 
 
