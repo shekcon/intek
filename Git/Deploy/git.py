@@ -41,19 +41,19 @@ def get_pos_track(files):
     return locations
 
 
-def read_file(file):
-    with open(file, 'r') as f:
+def read_file(file, mode='r'):
+    with open(file, mode) as f:
         return f.readlines()
 
 
-def write_file(data, file):
+def write_file(data, file, mode='w'):
     '''
     Task: overwrite content of file from content passed
     Param:
         + data: list of string element
         + file: path of file to write
     '''
-    with open(file, 'w') as f:
+    with open(file, mode) as f:
         f.writelines(data)
 
 
@@ -84,7 +84,7 @@ def create_object(files_add):
             mkdir(direc_obj)
         file_obj = join(direc_obj, file_obj)
         if not exists(file_obj):
-            write_file(read_file(path), file_obj)
+            write_file(read_file(path, mode='rb'), file_obj, mode='wb')
 
 
 def handle_raw_input(files):
@@ -94,21 +94,21 @@ def handle_raw_input(files):
         + Outside of lgit directory --> Show error
         + Path does not exist --> Show error
     '''
-    files_new = []
+    valid_files = []
     for f in files:
         path = format_path(f, mode='absolute')
         if getcwd() in path:
             path = path.replace(getcwd() + "/", "")
             if isdir(path):
                 sub_file = get_files_direc(path)
-                files_new = files_new + sub_file
+                valid_files = valid_files + sub_file
             elif exists(path):
-                files_new.append(path)
+                valid_files.append(path)
             else:
                 print("fatal: pathspec '" + f + "' did not match any files")
         else:
             print("fatal: %s '%s' is outside repository" % (f, f))
-    return files_new
+    return valid_files
 
 
 def add_git(files_add):
@@ -135,15 +135,19 @@ def get_files_direc(direc='.'):
     # find all path of file in src
     while dir_direc:
         # take directory from src
-        entry_direc = scandir(dir_direc.pop())
-        for e in entry_direc:
-            # store file in data_dir
-            if e.is_file():
-                path = abspath(e.path).replace(getcwd() + "/", '')
-                file_direc.append(path)
-            # store directory in data_dir
-            if e.is_dir() and ".lgit" not in e.path:
-                dir_direc.append(e.path)
+        try:
+            entry_direc = scandir(dir_direc.pop())
+            for e in entry_direc:
+                # store file in data_dir
+                if e.is_file():
+                    path = abspath(e.path).replace(getcwd() + "/", '')
+                    file_direc.append(path)
+                # store directory in data_dir
+                if e.is_dir() and ".lgit" not in e.path:
+                    dir_direc.append(e.path)
+        except PermissionError:
+            pass
+
     return file_direc
 
 

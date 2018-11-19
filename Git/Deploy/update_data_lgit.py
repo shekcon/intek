@@ -4,8 +4,8 @@ from get_data_lgit import get_data_object, get_info_snap
 from get_data_lgit import get_staged_unstaged, get_tracked_commit
 from get_data_lgit import get_pos_track, get_files_hash, get_commit_branch
 from format_data_lgit import format_index, format_time
-from os.path import getmtime, join
-from os import remove
+from os.path import getmtime, join, split, exists
+from os import remove, makedirs
 
 
 def update_index(files_update, mode):
@@ -54,27 +54,19 @@ def update_files_commit(files_hash):
     '''
     files_update = []
     for file in files_hash.keys():
-        if files_hash[file] != hash_sha1(file):
-            content = get_data_object(files_hash[file])
-            write_file(content, file, mode='wb')
+        if not exists(file) or files_hash[file] != hash_sha1(file):
+            update_content_file(file, files_hash[file])
         files_update.append(file)
     return files_update
 
 
-# def rm_untrack_commit(files_update):
-#     '''
-#     Task:
-#         + Get all tracked file of last commit of branch now
-#         + Get files don't belong to commit of new branch
-#         + Remove that files
-#     :param files_update: files of commit of new branch
-#     :return: nothing
-#     '''
-#     tracked_files = get_tracked_commit(get_commit_branch())
-#     unstrack_rm = [f for f in tracked_files if f not in files_update]
-#     for file in unstrack_rm:
-#         remove(file)
-        
+def update_content_file(file, hash_file):
+    content = get_data_object(hash_file)
+    head, _ = split(file)
+    if head and not exists(head):
+        makedirs(head)
+    write_file(content, file, mode='wb')
+
 
 def update_commit_branch(commit):
     '''
@@ -83,7 +75,7 @@ def update_commit_branch(commit):
     :return:
     '''
     branch = get_branch_now()
-    write_file(['%s\n' %(commit)], join('.lgit/refs/heads', branch))
+    write_file(['%s\n' % (commit)], join('.lgit/refs/heads', branch))
 
 
 def update_branch_now(branch):

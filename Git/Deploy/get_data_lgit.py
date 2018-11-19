@@ -3,13 +3,6 @@ from os.path import join
 from os import listdir
 
 
-def get_last_commit():
-    last_commit = sorted(listdir('.lgit/commits'), reverse=True)
-    if last_commit:
-        return last_commit[0]
-    return ''
-
-
 def get_all_branchs():
     return listdir('.lgit/refs/heads')
 
@@ -107,7 +100,8 @@ def get_branch_now():
 def get_commit_branch(branch=''):
     if not branch:
         branch = get_branch_now()
-    return read_file(join('.lgit/refs/heads/', branch))[0].strip()
+    result = read_file(join('.lgit/refs/heads/', branch))
+    return result[0].strip() if result else ''
 
 
 def get_info_commit(commit):
@@ -115,5 +109,10 @@ def get_info_commit(commit):
     # format time commit, author, point commit, message commit
     return data[1].strip(), data[0].strip(), data[2].strip(), data[4].strip()
 
+
 def get_author():
     return read_file('.lgit/config')[0].strip()
+
+
+def get_cmit_create_b(branch):
+    return read_file(join('.lgit/info', branch))[0].strip()
