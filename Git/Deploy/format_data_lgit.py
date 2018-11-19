@@ -1,5 +1,6 @@
 from datetime import datetime
 from time import strftime, mktime, localtime
+from get_data_lgit import get_branch_now
 
 
 def format_date_log(timestamp):
@@ -24,3 +25,7 @@ def format_time(timestamp, second=True):
 # get string format index
 def format_index(timestamp, current, add, commit, path):
     return '%s %s %s %40s %s\n' % (timestamp, current, add, commit, path)
+
+def format_conflict(data_rec, data_mer, branch_m):
+    return '<<<<<<<< %s\n%s======== %s\n%s' % (get_branch_now(), data_rec,
+                                                  branch_m, data_mer)

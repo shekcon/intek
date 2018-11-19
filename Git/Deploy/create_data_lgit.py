@@ -1,8 +1,8 @@
 from get_data_lgit import get_info_index, get_branch_now, get_commit_branch, get_author
-from os.path import join, exists
-from os import mkdir
+from os.path import join, exists, isdir, isfile
+from os import makedirs, getcwd
 from utils import write_file, read_file, hash_sha1, split_dir_file
-from get_data_lgit import get_last_commit
+from sys import exit as exit_program
 
 
 def create_branch(name):
@@ -14,8 +14,8 @@ def create_commit(message, time_ns):
     # save commit message and author
     author = get_author()
     t_commit = time_ns.split('.')[0]
-    l_commit = get_last_commit()
-    write_file(["%s\n%s\n%s\n\n%s\n" % (author, t_commit, l_commit, message)],
+    p_commit = get_commit_branch()
+    write_file(["%s\n%s\n%s\n\n%s\n" % (author, t_commit, p_commit, message)],
                join('.lgit/commits', time_ns))
 
 
@@ -42,7 +42,31 @@ def create_object(files_add):
         direc_obj, file_obj = split_dir_file(hash_f)
         direc_obj = join('.lgit/objects', direc_obj)
         if not exists(direc_obj):
-            mkdir(direc_obj)
+            makedirs(direc_obj)
         file_obj = join(direc_obj, file_obj)
         if not exists(file_obj):
             write_file(read_file(path, mode='rb'), file_obj, mode='wb')
+
+
+def create_info_branch(branch):
+    write_file(['%s\n' % (get_commit_branch())],
+               join('.lgit/info', branch))
+
+
+def create_structure_lgit(direcs, files):
+    if not exists('.lgit'):
+        makedirs('.lgit')
+    elif isfile('.lgit'):
+        print('fatal: Invalid gitfile format: .lgit')
+        exit_program()
+    for d in direcs:
+        if isfile(d):
+            print("%s: Not a directory" % (join(getcwd(), d)))
+        else:
+            makedirs(d)
+    for f in files:
+        if not isdir(f):
+            open(f, 'w').close()
+        else:
+            print("error: unable to mmap '%s' Is a directory" %
+                  (join(getcwd(), f)))
