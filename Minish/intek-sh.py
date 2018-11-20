@@ -2,6 +2,7 @@
 from os import chdir, environ, listdir
 from os.path import exists
 from subprocess import check_output, CalledProcessError
+from sys import exit as sys_exit
 
 
 def cd_sh(args):
@@ -53,6 +54,13 @@ def exc_program(command, args):
         print("intek-sh: %s: Permission denied" % (command[0]))
 
 
+def exit_sh(args):
+    print('exit')
+    if args:
+        sys_exit(args[0])
+    sys_exit()
+
+
 def handle_args(args):
     args = list(filter(None, args.split(' ')))
     if len(args) > 1:
@@ -76,16 +84,13 @@ def handle_check_command(command, args):
 
 
 def main():
-    command_built = {'cd', 'printenv', 'export', 'unset'}
+    command_built = {'cd', 'printenv', 'export', 'unset', 'exit'}
     try:
         while True:
             input_user = input('intek-sh$ ').strip()
             command, args = handle_args(input_user)
             if command in command_built:
                 exec('%s(%s)' % (command + '_sh', args))
-            elif command == 'exit':
-                print('exit')
-                break
             elif command and not handle_check_command(command, args):
                 print("intek-sh: %s: command not found" % (command))
     except EOFError:
