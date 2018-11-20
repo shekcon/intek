@@ -387,9 +387,9 @@ def check_strucsture_lgit():
 
 def setup_lgit():
     config_git(author=environ.get('LOGNAME'))
-    if read_file('.lgit/HEAD'):
+    if not read_file('.lgit/HEAD'):
         write_file(['ref: refs/heads/master'], '.lgit/HEAD')
-    if read_file('.lgit/info/master'):
+    if not read_file('.lgit/info/master'):
         write_file(['%s\n' % (format_time(time(), second=False))],
                    '.lgit/info/master')
 
