@@ -1,11 +1,10 @@
 from utils import read_file, write_file, hash_sha1
 from get_data_lgit import get_info_index, get_branch_now
 from get_data_lgit import get_data_object, get_info_snap
-from get_data_lgit import get_staged_unstaged, get_tracked_commit
 from get_data_lgit import get_pos_track, get_files_hash, get_commit_branch
 from format_data_lgit import format_index, format_time
 from os.path import getmtime, join, split, exists
-from os import remove, makedirs
+from os import makedirs, listdir, remove
 
 
 def update_index(files_update, mode):
@@ -85,3 +84,18 @@ def update_branch_now(branch):
     :return: nothing
     '''
     write_file(['ref: refs/heads/%s\n' % (branch)], '.lgit/HEAD')
+
+
+def update_unstash_files(branch):
+    path = './lgit/stash/heads/%s/index' % (branch)
+    if exists(path):
+        write_file(read_file(path), '.lgit/index')
+        for file in listdir('.lgit/stash/heads/%s/objects' % (branch)):
+            file_object = '.lgit/stash/heads/%s/objects/%s' % (branch, file)
+            content = read_file(file_object, mode='rb')
+            write_file(content, file, mode='wb')
+            remove(file_object)
+        remove(path)
+        print('Unstaged completed')
+    else:
+        print("Nothing to unstaged at all")
