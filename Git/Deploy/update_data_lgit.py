@@ -21,6 +21,8 @@ def update_index(files_update, mode):
     data_index = read_file('.lgit/index')
     location = get_pos_track(files_update)
     for file in files_update:
+        if not exists(file):
+            continue
         h_current = hash_sha1(file)
         line = location.get(file, -1)
         if mode == 'add':
@@ -46,7 +48,8 @@ def update_files_commit(files_hash):
     '''
     Task:
         + Get dictionary of commit passed: file is key, hash of file is value
-        + Loop all file in commit if different hash then get content of file in database object
+        + Loop all file in commit if different hash then
+                    get content of file in database object
         + Overwrite content of file
     :param files_hash: a dictionary key is file, value is hash of file
     :return: list files is changed content from commit passed
@@ -87,7 +90,7 @@ def update_branch_now(branch):
 
 
 def update_unstash_files(branch):
-    path = './lgit/stash/heads/%s/index' % (branch)
+    path = '.lgit/stash/heads/%s/index' % (branch)
     if exists(path):
         write_file(read_file(path), '.lgit/index')
         for file in listdir('.lgit/stash/heads/%s/objects' % (branch)):
@@ -96,6 +99,6 @@ def update_unstash_files(branch):
             write_file(content, file, mode='wb')
             remove(file_object)
         remove(path)
-        print('Unstaged completed')
+        return 'Unstaged completed'
     else:
-        print("Nothing to unstaged at all")
+        return "Nothing to unstaged at all"

@@ -1,11 +1,12 @@
 from get_data_lgit import get_info_index, get_branch_now, get_commit_branch, get_author
-from os.path import join, exists, isdir, isfile
+from os.path import join, exists, isdir, isfile, split
 from os import makedirs, getcwd
 from utils import write_file, read_file, hash_sha1, split_dir_file
 from sys import exit as exit_program
 
 
 def create_branch(name):
+    makedirs('.lgit/stash/heads/%s/objects' % (name))
     write_file(['%s\n' % (get_commit_branch())],
                '.lgit/refs/heads/%s' % (name))
 
@@ -74,7 +75,8 @@ def create_structure_lgit(direcs, files):
 
 def create_stash_files(modified_file):
     branch_now = get_branch_now()
-    write_file(read_file('.lgit/index'), '.lgit/stash/heads/%s/index' % (branch_now))
+    path = '.lgit/stash/heads/%s/index' % (branch_now)
+    write_file(read_file('.lgit/index'), path)
     for file in modified_file:
         content = read_file(file, mode='rb')
         path = join('.lgit/stash/heads/%s/objects' % (branch_now), file)

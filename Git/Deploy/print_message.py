@@ -54,6 +54,13 @@ Maybe you wanted to say 'git add .'?")
 
 
 def ERROR_CHECKOUT(paths):
-    print("error: Your local changes to the following files would be overwritten by checkout:\
-\n\t%s\nPlease commit your changes or stash them before you switch branches.\nAborting"
+    print("error: Your local changes to the following files would \
+be overwritten by checkout:\n\t%s\nPlease commit your changes or \
+stash them before you switch branches.\nAborting"
           % ('\n\t'.join(paths)))
+
+
+def TRACKED_DELETED(paths):
+    print("Change to untrack file:\n(use \"./lgit.py rm ...\"\
+ to untrack file)\n")
+    print("\t deleted:", '\n\t deleted: '.join(paths), end='\n\n')
