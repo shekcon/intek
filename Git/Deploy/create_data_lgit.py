@@ -70,3 +70,12 @@ def create_structure_lgit(direcs, files):
         else:
             print("error: unable to mmap '%s' Is a directory" %
                   (join(getcwd(), f)))
+
+
+def create_stash_files(modified_file):
+    branch_now = get_branch_now()
+    write_file(read_file('.lgit/index'), '.lgit/stash/heads/%s/index' % (branch_now))
+    for file in modified_file:
+        content = read_file(file, mode='rb')
+        path = join('.lgit/stash/heads/%s/objects' % (branch_now), file)
+        write_file(content, path, mode='wb')
