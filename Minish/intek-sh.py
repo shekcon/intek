@@ -16,51 +16,62 @@ def cd_sh(args):
         print("intek-sh: cd: HOME not set")
 
 
-def handle_args(args):
-    if len(args) > 1:
-        return args[0], args[1:]
-    if not args:
-        return '', ''
-    return args[0], []
-
-
 def export_sh(args):
-    name_key, value_key = args[0].split('=')
-    environ[name_key] = value_key
+    if not args:
+        print_all_env()
+    else:
+        name_key, value_key = args[0].split('=')
+        environ[name_key] = value_key
 
 
 def unset_sh(args):
-    if environ.get(args[0], ''):
+    if not args:
+        print("intek-sh$ unset: not enough arguments")
+    elif environ.get(args[0], ''):
         del environ[args[0]]
 
 
+def print_all_env():
+    for env, content in environ.items():
+        print('%s=%s' % (env, content))
+
+
 def printenv_sh(args):
-    if environ.get(args[0], ''):
+    if not args:
+        print_all_env()
+    elif environ.get(args[0], ''):
         print(environ[args[0]])
 
 
-def exc_program(command, args, origin_command):
+def exc_program(command, args):
     try:
-        output = check_output(["%s" % (command)] + args)
+        output = check_output(['/'.join(command[::-1])] + args)
         print(output.decode(), end='')
     except CalledProcessError:
         pass
     except PermissionError:
-        print("intek-sh: %s: Permission denied" % (origin_command))
+        print("intek-sh: %s: Permission denied" % (command[0]))
+
+
+def handle_args(args):
+    args = list(filter(None, args.split(' ')))
+    if len(args) > 1:
+        return args[0], args[1:]
+    if not args:
+        return '', []
+    return args[0], []
 
 
 def handle_check_command(command, args):
+    if exists(command) and (command.startswith('./') or
+                            command.startswith('../')):
+        exc_program((command,), args)
+        return True
     if environ.get('PATH', ""):
-        if exists(command) and (command.startswith('./') or
-                                command.startswith('../')):
-            exc_program(command, args, command)
-            return True
         for path in environ['PATH'].split(':'):
-            if exists(path):
-                bin_commands = listdir(path)
-                if command in bin_commands:
-                    exc_program("%s/%s" % (path, command), args, command)
-                    return True
+            if exists(path) and command in listdir(path):
+                exc_program((command, path), args)
+                return True
     return False
 
 
@@ -69,8 +80,7 @@ def main():
     try:
         while True:
             input_user = input('intek-sh$ ').strip()
-            command, args = handle_args(list(filter(None,
-                                                    input_user.split(' '))))
+            command, args = handle_args(input_user)
             if command in command_built:
                 exec('%s(%s)' % (command + '_sh', args))
             elif command == 'exit':
