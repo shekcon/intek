@@ -1,5 +1,5 @@
 from os.path import join, abspath, split
-from os import rmdir, getcwd, listdir,scandir
+from os import rmdir, getcwd, listdir, scandir
 from hashlib import sha1
 
 
