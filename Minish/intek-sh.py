@@ -36,31 +36,13 @@ def export_sh(args):
     if not args:
         print_all_env()
     else:
-        name_key, value_key = args[0].split('=')
-        value_key = check_long_str(args, value_key)
-        environ[name_key] = value_key
-
-
-def check_long_str(args, value_key):
-    '''
-    Testcase:   bash$ export TEST='dawdaw'
-                bash$ printenv TEST
-                bash$ dawdaw
-                bash$ export TEST="hello wrold"
-                bash$ printenv TEST
-                bash$ hello world
-    '''
-    if ((value_key.startswith("'") and value_key.endswith("'"))
-       or (value_key.startswith("\"") and value_key.endswith("\""))):
-        return value_key[1:-1:]
-    elif ((value_key.startswith("'"))
-          or (value_key.startswith("\""))):
-        match = value_key[0]
-        for i in range(1, len(args)):
-            if args[i].endswith(match):
-                end = i
-        return ' '.join([value_key[1:]] + args[1:end] + args[:-1:])
-    return value_key
+        for env in args:
+            if "=" in env:
+                name_key, value_key = env.split('=')
+            else:
+                name_key = env
+                value_key = ''
+            environ[name_key] = value_key
 
 
 def unset_sh(args):
@@ -90,7 +72,7 @@ def exc_program(command, args):
 def exit_sh(args):
     print('exit')
     if args and not args[0].isdigit():
-        print("intek-sh$ exit:")
+        print("intek-sh: exit:")
     sys_exit()
 
 
@@ -134,7 +116,7 @@ def main():
             command, args = handle_args(input_user)
             try:
                 if command in command_built:
-                    exec('%s(%s)' % (command + '_sh', args))
+                    exec('%s_sh(args)' % (command))
                 elif command and not handle_check_command(command, args):
                     print("intek-sh: %s: command not found" %
                           (command))
