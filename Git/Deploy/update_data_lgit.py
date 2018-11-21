@@ -4,7 +4,7 @@ from get_data_lgit import get_data_object, get_info_snap
 from get_data_lgit import get_pos_track, get_files_hash, get_commit_branch
 from format_data_lgit import format_index, format_time
 from os.path import getmtime, join, split, exists
-from os import makedirs, listdir, remove
+from os import makedirs, listdir, remove, access, W_OK, R_OK
 
 
 def update_index(files_update, mode):
@@ -21,7 +21,7 @@ def update_index(files_update, mode):
     data_index = read_file('.lgit/index')
     location = get_pos_track(files_update)
     for file in files_update:
-        if not exists(file):
+        if not exists(file) or not access(file, R_OK):
             continue
         h_current = hash_sha1(file)
         line = location.get(file, -1)
@@ -50,12 +50,15 @@ def update_files_commit(files_hash):
         + Get dictionary of commit passed: file is key, hash of file is value
         + Loop all file in commit if different hash then
                     get content of file in database object
-        + Overwrite content of file
+        + If file exists but not have permission write then remove it
+        + Create file or overwrite content of file
     :param files_hash: a dictionary key is file, value is hash of file
     :return: list files is changed content from commit passed
     '''
     files_update = []
     for file in files_hash.keys():
+        if exists(file) and not access(file, W_OK):
+            remove(file)
         if not exists(file) or files_hash[file] != hash_sha1(file):
             update_content_file(file, files_hash[file])
         files_update.append(file)

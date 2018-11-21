@@ -1,7 +1,26 @@
+class COLORS:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    UNDERLINE = '\033[4m'
+    RED = "\033[1;31m"
+    BLUE = "\033[1;34m"
+    CYAN = "\033[1;36m"
+    GREEN = "\033[3;32m"
+    RESET = "\033[0;0m"
+    BOLD = "\033[;1m"
+    REVERSE = "\033[;7m"
+
+
 def READY_COMMITTED(paths):
     print("Changes to be committed:\n\
 (use \"./lgit.py reset HEAD ...\" to unstage)\n")
-    print("\t modified:", '\n\t modified: '.join(paths), end='\n\n')
+    print("\t %smodified: %s%s" %
+          (COLORS.GREEN,
+           '\n\t modified: '.join(paths), COLORS.ENDC), end='\n\n')
 
 
 def TRACKED_MODIFIED(paths):
@@ -9,13 +28,16 @@ def TRACKED_MODIFIED(paths):
 (use \"./lgit.py add ...\" to update what will be committed)\n\
 (use \"./lgit.py checkout -- ...\" to discard changes \
 in working directory)\n")
-    print("\t modified:", '\n\t modified: '.join(paths), end='\n\n')
+    print("\t %smodified: %s%s" %
+          (COLORS.FAIL,
+           '\n\t modified: '.join(paths), COLORS.ENDC), end='\n\n')
 
 
 def UNTRACKED_FILE(paths):
     print("Untracked files:\n\
 (use \"./lgit.py add <file>...\" to include in what will be committed)\n")
-    print("\t", '\n\t'.join(paths), sep='', end='\n\n')
+    print("\t%s%s%s" %
+          (COLORS.FAIL, '\n\t'.join(paths), COLORS.ENDC), end='\n\n')
 
 
 def NO_ADDED_BUT_UNTRACKED():
@@ -63,4 +85,7 @@ stash them before you switch branches.\nAborting"
 def TRACKED_DELETED(paths):
     print("Change to untrack file:\n(use \"./lgit.py rm ...\"\
  to untrack file)\n")
-    print("\t deleted:", '\n\t deleted: '.join(paths), end='\n\n')
+    print("\t %sdeleted: %s%s" %
+          (COLORS.RED,
+           '\n\t deleted: '.join(paths),
+           COLORS.ENDC), end='\n\n')
