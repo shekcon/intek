@@ -2,7 +2,6 @@
 from os import chdir, environ, listdir
 from os.path import exists, join
 from subprocess import check_output, CalledProcessError
-from sys import exit as sys_exit
 
 
 def cd_sh(args):
@@ -28,8 +27,6 @@ def export_sh(args):
     Task:
         + If not argument passed then print all environment
         + Else take environment want change and value change
-        + Run check long string to get right value
-        + Set value for environment
     :param args: argument change environment
     :return: None
     '''
@@ -69,13 +66,6 @@ def exc_program(command, args):
     print(output.decode(), end='')
 
 
-def exit_sh(args):
-    print('exit')
-    if args and not args[0].isdigit():
-        print("intek-sh: exit:")
-    sys_exit()
-
-
 def handle_args(args):
     args = list(filter(None, args.split(' ')))
     if len(args) > 1:
@@ -109,7 +99,7 @@ def handle_check_command(command, args):
 
 
 def main():
-    command_built = {'cd', 'printenv', 'export', 'unset', 'exit'}
+    command_built = {'cd', 'printenv', 'export', 'unset'}
     try:
         while True:
             input_user = input('intek-sh$ ').strip()
@@ -117,6 +107,11 @@ def main():
             try:
                 if command in command_built:
                     exec('%s_sh(args)' % (command))
+                elif command == 'exit':
+                    print('exit')
+                    if args and not args[0].isdigit():
+                        print("intek-sh: exit:")
+                    return
                 elif command and not handle_check_command(command, args):
                     print("intek-sh: %s: command not found" %
                           (command))
