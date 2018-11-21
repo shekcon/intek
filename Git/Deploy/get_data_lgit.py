@@ -1,6 +1,6 @@
 from utils import read_file, split_dir_file, get_files_direc, hash_sha1
 from os.path import join
-from os import listdir
+from os import listdir, access, R_OK
 
 
 def get_all_branchs():
@@ -31,7 +31,7 @@ def get_staged_unstaged():
     unstaged_file = []
     for line in read_file(file='.lgit/index'):
         _, h_current, h_add, h_commit, name = get_info_index(line)
-        if h_current != h_add:
+        if h_current != h_add or not access(name, R_OK):
             unstaged_file.append(name)
         if h_add != h_commit:
             staged_file.append(name)

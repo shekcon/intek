@@ -2,9 +2,11 @@
 
 from os import environ, getcwd, chdir, remove
 from os.path import join, exists, isfile, isdir, relpath, abspath, getmtime
-from os import access, R_OK
+from os import access, R_OK, makedirs, listdir
 from argparse import ArgumentParser
 from time import time
+from sys import exit as sys_exit
+from print_message import COLORS
 # from get_data_lgit import get_data_object
 from get_data_lgit import get_all_commits, get_pos_track, get_files_hash
 from get_data_lgit import get_tracked_unstracked, get_staged_unstaged
@@ -21,6 +23,7 @@ from create_data_lgit import create_branch, create_snapshot
 from create_data_lgit import create_stash_files, create_structure_lgit
 from format_data_lgit import format_index, format_time, format_date_log
 import print_message
+from args_lgit import handle_arguments
 
 
 def merge_git(branch_m):
@@ -40,10 +43,10 @@ def merge_git(branch_m):
             revert_commit(branch_m)
             update_commit_branch(last_cmit_b)
         else:
-            print('<------------------Merge 3 way----------------->')
-            conflict_f, create_f = check_merge_branch(last_cmit_b)
-            update_files_commit(create_f)
-            handle_conflict(conflict_f, branch_m)
+            print('<------------------Merge Conflict----------------->')
+            # conflict_f, create_f = check_merge_branch(last_cmit_b)
+            # update_files_commit(create_f)
+            # handle_conflict(conflict_f, branch_m)
     else:
         print("Already up to date")
 
@@ -124,6 +127,15 @@ def stash_git():
 
 def unstash_git():
     print(update_unstash_files(get_branch_now()))
+
+
+def show_branch():
+    branchs = listdir('.lgit/refs/heads/')
+    b_current = get_branch_now()
+    print('%s*%s%s' % (COLORS.GREEN, b_current, COLORS.ENDC))
+    other_b = '\n'.join([b for b in branchs if b not in b_current])
+    if other_b:
+        print(other_b)
 
 
 def branch_git(name):
@@ -222,6 +234,7 @@ def handle_raw_input(files_user, tracked_file=''):
                 valid_files.append(path)
         else:
             print_message.OUTSIDE_DIRECTORY(file)
+            sys_exit()
     return valid_files
 
 
@@ -233,11 +246,13 @@ def is_valid_file(path, file):
     '''
     if exists(path) and access(path, mode=R_OK):
         return True
+    elif not exists(path):
+        print_message.NOT_MATCH_FILE(file)
     elif not access(path, mode=R_OK):
         print_message.PERMISSION_DENIED_READ(file)
     else:
-        print_message.NOT_MATCH_FILE(file)
-    return False
+        return False
+    sys_exit()
 
 
 def is_inside_lgit(path):
@@ -254,14 +269,16 @@ def add_git(files_add):
     if files_new:
         update_index(files_new, mode='add')
         create_object(files_new)
-    elif not files_add:
-        print_message.NOTHING_TO_ADDED()
 
 
 def status_git():
     tracked, _ = get_tracked_unstracked()
     update_index(tracked, mode='status')
-    show_status([f for f in tracked if not exists(f)])
+    show_status(get_files_deleted(tracked))
+
+
+def get_files_deleted(tracked_file):
+    return [file for file in tracked_file if not exists(file)]
 
 
 def show_status(deleted_files=''):
@@ -319,8 +336,8 @@ def show_log(commit):
     if commit:
         time_commit, author, p_commit, message = get_info_commit(commit)
         date = format_date_log(time_commit)
-        print("commit %s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
-              (commit, author, date, message))
+        print("%scommit %s%s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
+              (COLORS.RED, commit, COLORS.ENDC, author, date, message))
         show_log(p_commit)
 
 
@@ -366,12 +383,21 @@ def rm_git(files):
         write_file(data_index, file='.lgit/index')
 
 
+def handle_init_direc(dest):
+    if dest:
+        if not exists(dest):
+            makedirs(dest)
+        chdir(dest)
+
+
 def init_git():
     direcs, files = check_strucsture_lgit()
     create_structure_lgit(direcs, files)
     setup_lgit()
     if len(direcs) + len(files) < 10:
-        print('Git repository already initialized.')
+        print('Lgit repository already initialized.')
+    else:
+        print('Initialized empty Lgit repository in %s/.lgit/' % (getcwd()))
 
 
 def check_strucsture_lgit():
@@ -386,7 +412,8 @@ def check_strucsture_lgit():
 
 
 def setup_lgit():
-    config_git(author=environ.get('LOGNAME'))
+    if not read_file('.lgit/config'):
+        config_git(author=environ.get('LOGNAME'))
     if not read_file('.lgit/HEAD'):
         write_file(['ref: refs/heads/master'], '.lgit/HEAD')
     if not read_file('.lgit/info/master'):
@@ -411,63 +438,40 @@ def format_path(path, mode):
         return relpath(join(getcwd(), path), start=cwd_path)
 
 
-def get_args():
-    parser = ArgumentParser(prog="lgit")
-    parser.add_argument('command', help="command options")
-    parser.add_argument('files', nargs="*",
-                        help=" Add file contents to the index")
-    parser.add_argument('-m', '--message',
-                        help="description about what you do")
-    parser.add_argument('--author', help="set author for commit",)
-    return parser.parse_args()
-
-
 def main():
-    args = get_args()
+    args = handle_arguments()
     try:
         if args.command == 'init':
+            handle_init_direc(args.dest)
             init_git()
         elif find_parent_git():
             if args.command == 'add':
-                add_git(args.files)
+                add_git(args.file)
             elif args.command == 'status':
                 status_git()
             elif args.command == 'commit':
                 commit_git(args.message)
             elif args.command == 'config':
-                config_git(author=args.author)
+                config_git(args.author)
             elif args.command == 'ls-files':
                 ls_files_git()
             elif args.command == 'log':
                 log_git()
             elif args.command == 'rm':
-                if args.files:
-                    rm_git(args.files)
-                else:
-                    print('Missing file to removed')
+                rm_git(args.file)
             elif args.command == 'checkout':
-                if len(args.files) == 1:
-                    checkout_git(args.files[0])
-                elif len(args.files) > 1:
-                    print("invalid argument commit passed into checkout")
-                else:
-                    print("missing argument commit to checkout")
+                checkout_git(args.branch)
             elif args.command == 'branch':
-                if not args.files:
-                    print('*%s' % (get_branch_now()))
+                if not args.name:
+                    show_branch()
                 else:
-                    branch_git(args.files[0])
+                    branch_git(args.name)
             elif args.command == 'stash':
                 stash_git()
             elif args.command == 'unstash':
                 unstash_git()
             elif args.command == 'merge':
-                if not args.files:
-                    print('Missing name of branch to merged')
-                else:
-                    merge_git(args.files[0])
-            else:
-                print("Git: '" + args.command + "' is not a git command.")
+                merge_git(args.branch)
         else:
             print('fatal: not a git repository (or any \
 of the parent directories)')
