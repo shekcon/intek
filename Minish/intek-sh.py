@@ -144,6 +144,9 @@ def main():
             except FileNotFoundError:
                 print("intek-sh: cd: '%s': No such file or directory" %
                       (args[0]))
+            except OSError:
+                print("intek-sh: %s: cannot execute binary file" %
+                      (command))
             except CalledProcessError:
                 pass
     except EOFError:
