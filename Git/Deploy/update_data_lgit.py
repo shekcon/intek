@@ -21,27 +21,49 @@ def update_index(files_update, mode):
     data_index = read_file('.lgit/index')
     location = get_pos_track(files_update)
     for file in files_update:
-        if not exists(file) or not access(file, R_OK):
+        # commit command then ignore about file doesn't exist
+        # or haven't permission to read else skip this file
+        # if there is valid file then get location file
+        if mode != 'commit' and (not exists(file) or
+                                 not access(file, R_OK)):
             continue
-        h_current = hash_sha1(file)
         line = location.get(file, -1)
+
+        # add command need hash sha1 file
+        # hash add equal hash file
+        # hash commit get from index file or empty
         if mode == 'add':
+            h_current = hash_sha1(file)
             h_add = h_current
             if line != -1:
                 _, _, _, h_commit, _ = get_info_index(data_index[line])
-            else:
-                h_commit = ''
-        else:
+
+        # commit command only read inside index file
+        # read hash current, hash add
+        # then now hash commit equal hash add
+        elif mode == 'commit':
+            _, h_current, h_add, _, _ = get_info_index(data_index[line])
+            h_commit = h_add
+
+        # status command update timestamp and hash file now
+        # get hash sha1 file then read index file get hash add and commit
+        elif mode == 'status':
+            h_current = hash_sha1(file)
             _, _, h_add, h_commit, _ = get_info_index(data_index[line])
-            if mode == 'commit':
-                h_commit = h_add
+
         if line != -1:
             data_index[line] = format_index(format_time(
                 getmtime(file)), h_current, h_add, h_commit, file)
+
+        # when add command if file not in index file then append it into list
         else:
             data_index.append(format_index(format_time(
-                getmtime(file)), h_current, h_add, h_commit, file))
-    write_file(data_index, file='.lgit/index')
+                getmtime(file)), h_current, h_add, '', file))
+
+    # hash information changes is diffent with origin index file
+    # if different then update information changes into index file
+    if hash_sha1('.lgit/index') != hash_sha1(data_index, mode='list'):
+        write_file(data_index, file='.lgit/index')
 
 
 def update_files_commit(files_hash):
@@ -97,9 +119,15 @@ def update_unstash_files(branch):
     if exists(path):
         write_file(read_file(path), '.lgit/index')
         for file in listdir('.lgit/stash/heads/%s/objects' % (branch)):
+            # get content of file
             file_object = '.lgit/stash/heads/%s/objects/%s' % (branch, file)
             content = read_file(file_object, mode='rb')
+
+            # if file exists and not have permission to write then remove
+            if exists(file) and not access(file, W_OK):
+                remove(file)
             write_file(content, file, mode='wb')
+
             remove(file_object)
         remove(path)
         return 'Unstaged completed'

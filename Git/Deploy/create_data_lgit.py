@@ -1,8 +1,10 @@
-from get_data_lgit import get_info_index, get_branch_now, get_commit_branch, get_author
+from get_data_lgit import get_info_index, get_branch_now, get_commit_branch
+from get_data_lgit import get_author
 from os.path import join, exists, isdir, isfile, split
-from os import makedirs, getcwd
+from os import makedirs, getcwd, access, R_OK
 from utils import write_file, read_file, hash_sha1, split_dir_file
 from sys import exit as exit_program
+import print_message
 
 
 def create_branch(name):
@@ -16,7 +18,8 @@ def create_commit(message, time_ns):
     author = get_author()
     t_commit = time_ns.split('.')[0]
     p_commit = get_commit_branch()
-    write_file(["%s\n%s\n%s\n\n%s\n" % (author, t_commit, p_commit, message)],
+    write_file(["%s\n%s\n%s\n\n%s\n" %
+                (author, t_commit, p_commit, message)],
                join('.lgit/commits', time_ns))
 
 
@@ -74,10 +77,19 @@ def create_structure_lgit(direcs, files):
 
 
 def create_stash_files(modified_file):
-    branch_now = get_branch_now()
-    path = '.lgit/stash/heads/%s/index' % (branch_now)
-    write_file(read_file('.lgit/index'), path)
-    for file in modified_file:
-        content = read_file(file, mode='rb')
-        path = join('.lgit/stash/heads/%s/objects' % (branch_now), file)
-        write_file(content, path, mode='wb')
+    if _is_valid_stash(modified_file):
+        branch_now = get_branch_now()
+        path = '.lgit/stash/heads/%s/index' % (branch_now)
+        write_file(read_file('.lgit/index'), path)
+        for file in modified_file:
+            content = read_file(file, mode='rb')
+            path = join('.lgit/stash/heads/%s/objects' % (branch_now), file)
+            write_file(content, path, mode='wb')
+
+
+def _is_valid_stash(files):
+    for f in files:
+        if access(f, R_OK):
+            print_message.PERMISSION_DENIED_STASH(f)
+            exit_program()
+    return True
