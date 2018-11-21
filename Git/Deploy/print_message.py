@@ -89,3 +89,9 @@ def TRACKED_DELETED(paths):
           (COLORS.RED,
            '\n\t deleted: '.join(paths),
            COLORS.ENDC), end='\n\n')
+
+
+def PERMISSION_DENIED_STASH(f):
+    print("error: open(\"%s\"): Permission denied\n\
+fatal: Unable to process path %s\n\
+Cannot save the current worktree state" % (f, f))

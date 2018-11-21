@@ -5,7 +5,7 @@ from os.path import join, exists, isfile, isdir, relpath, abspath, getmtime
 from os import access, R_OK, makedirs, listdir
 from argparse import ArgumentParser
 from time import time
-from sys import exit as sys_exit
+from sys import exit as exit_program
 from print_message import COLORS
 # from get_data_lgit import get_data_object
 from get_data_lgit import get_all_commits, get_pos_track, get_files_hash
@@ -139,7 +139,9 @@ def show_branch():
 
 
 def branch_git(name):
-    if is_invalid_branch(name):
+    if not name:
+        show_branch()
+    elif is_invalid_branch(name):
         create_branch(name)
         create_info_branch(name)
         print("Create a new branch '%s'" % (name))
@@ -211,7 +213,7 @@ def config_git(author):
     write_file(['%s\n' % (author)], file='.lgit/config')
 
 
-def handle_raw_input(files_user, tracked_file=''):
+def handle_raw_input(files_user, tracked_file='', mode=''):
     '''
     Task:
         + Return list valid file is relative with lgit directory
@@ -227,14 +229,14 @@ def handle_raw_input(files_user, tracked_file=''):
         if is_inside_lgit(path):
             path = rm_head_lgit(path)
             if isdir(path):
-                sub_files = get_files_direc(path)
+                sub_files = get_files_direc(path, mode)
                 valid_files = valid_files + \
-                    handle_raw_input(sub_files, tracked_file)
+                    handle_raw_input(sub_files, tracked_file, mode)
             elif path in tracked_file or is_valid_file(path, file):
                 valid_files.append(path)
         else:
             print_message.OUTSIDE_DIRECTORY(file)
-            sys_exit()
+            exit_program()
     return valid_files
 
 
@@ -252,7 +254,7 @@ def is_valid_file(path, file):
         print_message.PERMISSION_DENIED_READ(file)
     else:
         return False
-    sys_exit()
+    exit_program()
 
 
 def is_inside_lgit(path):
@@ -265,7 +267,7 @@ def add_git(files_add):
         + Add untrack file or update unstaged file in index file
         + Store a copy of the file content in the lgit database
     '''
-    files_new = handle_raw_input(files_add)
+    files_new = handle_raw_input(files_add, mode='add')
     if files_new:
         update_index(files_new, mode='add')
         create_object(files_new)
@@ -385,9 +387,12 @@ def rm_git(files):
 
 def handle_init_direc(dest):
     if dest:
-        if not exists(dest):
+        if exists(dest):
+            print('fatal: cannot mkdir %s: File exists' % (dest))
+            exit_program()
+        else:
             makedirs(dest)
-        chdir(dest)
+            chdir(dest)
 
 
 def init_git():
@@ -462,10 +467,7 @@ def main():
             elif args.command == 'checkout':
                 checkout_git(args.branch)
             elif args.command == 'branch':
-                if not args.name:
-                    show_branch()
-                else:
-                    branch_git(args.name)
+                branch_git(args.name)
             elif args.command == 'stash':
                 stash_git()
             elif args.command == 'unstash':
