@@ -1,7 +1,6 @@
-from os.path import join, abspath, split
-from os import rmdir, getcwd, listdir, scandir
-from hashlib import sha1
+import os
 from sys import exit as exit_program
+from hashlib import sha1
 
 
 def hash_sha1(file, mode='file'):
@@ -18,13 +17,13 @@ def split_dir_file(hash_file):
 
 
 def remove_empty_dirs(path):
-    head, _ = split(path)
+    head, _ = os.path.split(path)
     # remove directory if it empty directory
     while head:
-        if listdir(head):
+        if os.listdir(head):
             return
-        rmdir(head)
-        head, _ = split(head)
+        os.rmdir(head)
+        head, _ = os.path.split(head)
 
 
 def read_file(file, mode='r'):
@@ -54,21 +53,21 @@ def get_files_direc(direc='.', mode=''):
         # take directory from src
         try:
             direc = dir_direc.pop()
-            entry_direc = scandir(direc)
+            entry_direc = os.scandir(direc)
             for e in entry_direc:
                 # store file in data_dir
                 if e.is_file():
-                    file_direc.append(rm_head_lgit(abspath(e.path)))
+                    file_direc.append(rm_head_lgit(os.path.abspath(e.path)))
                 # store directory in data_dir
                 if e.is_dir() and ".lgit" not in e.path:
                     dir_direc.append(e.path)
         except PermissionError:
             if mode == 'add':
                 print("warning: could not open directory '%s/%s/': "
-                      "Permission denied " % (getcwd(), direc))
+                      "Permission denied " % (os.getcwd(), direc))
                 exit_program()
     return file_direc
 
 
 def rm_head_lgit(path):
-    return path.replace(getcwd() + "/", '')
+    return path.replace(os.getcwd() + "/", '')

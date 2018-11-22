@@ -1,10 +1,9 @@
 from utils import read_file, split_dir_file, get_files_direc, hash_sha1
-from os.path import join
-from os import listdir, access, R_OK
+import os
 
 
 def get_all_branchs():
-    return listdir('.lgit/refs/heads')
+    return os.listdir('.lgit/refs/heads')
 
 
 def get_modified_branch():
@@ -18,7 +17,7 @@ def get_modified_branch():
 
 
 def get_files_hash(commit):
-    snapshot = read_file(join('.lgit/snapshots', commit))
+    snapshot = read_file('.lgit/snapshots/%s' % (commit))
     files_hash = {}
     for line in snapshot:
         hash_f, file = get_info_snap(line)
@@ -31,7 +30,7 @@ def get_staged_unstaged():
     unstaged_file = []
     for line in read_file(file='.lgit/index'):
         _, h_current, h_add, h_commit, name = get_info_index(line)
-        if h_current != h_add or not access(name, R_OK):
+        if h_current != h_add or not os.access(name, os.R_OK):
             unstaged_file.append(name)
         if h_add != h_commit:
             staged_file.append(name)
@@ -64,16 +63,13 @@ def get_pos_track(files):
 
 def get_data_object(hash_commit):
     direc, file = split_dir_file(hash_commit)
-    return read_file(join(join('.lgit/objects', direc), file), mode='rb')
-
-
-def get_all_commits():
-    return listdir('.lgit/commits')
+    path = '.lgit/objects/%s/%s' % (direc, file)
+    return read_file(path, mode='rb')
 
 
 def get_tracked_commit(commit):
     files = []
-    for line in read_file(join('.lgit/snapshots', commit)):
+    for line in read_file('.lgit/snapshots/%s' % (commit)):
         files.append(line.strip()[41:])
     return files
 
@@ -100,12 +96,12 @@ def get_branch_now():
 def get_commit_branch(branch=''):
     if not branch:
         branch = get_branch_now()
-    result = read_file(join('.lgit/refs/heads/', branch))
+    result = read_file('.lgit/refs/heads/%s' % (branch))
     return result[0].strip() if result else ''
 
 
 def get_info_commit(commit):
-    data = read_file(join(".lgit/commits", commit))
+    data = read_file(".lgit/commits/%s" % (commit))
     # format time commit, author, point commit, message commit
     return data[1].strip(), data[0].strip(), data[2].strip(), data[4].strip()
 
@@ -115,4 +111,4 @@ def get_author():
 
 
 def get_cmit_create_b(branch):
-    return read_file(join('.lgit/info', branch))[0].strip()
+    return read_file('.lgit/info/%s' % (branch))[0].strip()
