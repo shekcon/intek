@@ -21,6 +21,7 @@ from create_data_lgit import create_branch, create_snapshot
 from create_data_lgit import create_stash_files, create_structure_lgit
 from format_data_lgit import format_index, format_time, format_date_log
 import print_message
+import difflib
 
 
 def merge_git(branch_m):
@@ -79,6 +80,67 @@ def merge_git(branch_m):
 #         elif tracked_f[file] != tracked_f_merge[file]:
 #             files_conflict[file] = (tracked_f[file], tracked_f_merge[file])
 #     return files_conflict, files_creates
+
+
+def handle_merge():
+    dest_content = ''.join(read_file('master'))
+
+    line_dest = [-1]
+    for index, i in enumerate(dest_content):
+        if i == '\n':
+            line_dest.append(index)
+    print(line_dest)
+
+    line_source = [-1]
+    for index, i in enumerate(line_source):
+        if i == '\n':
+            line_source.append(index)
+
+    source_content = ''.join(read_file('branch'))
+    # source_content = ''.join(read_file('master'))
+    # dest_content = ''.join(read_file('branch'))
+    match = difflib.SequenceMatcher(None, dest_content, source_content)
+    direction = match.get_opcodes()
+    print(direction)
+    for tag, i1, i2, j1, j2 in direction:
+        if tag == 'equal':
+            print(tag, "\n%s\n%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            start, end = handle_line(line_dest, i1, i2)
+            print("%s" % (dest_content[start:end]))
+        if tag == 'insert':
+            print(tag, "\n%s%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            start, end = handle_line(line_source, j1, j2)
+            print("%s" % (source_content[start:end]))
+        elif tag == 'replace':
+            print(tag, "\n%s%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            start, end = handle_line(line_dest, i1, i2)
+            print("%s" % (dest_content[start:end]))
+        elif tag == 'delete':
+            print(tag, "\n%s%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            start, end = handle_line(line_dest, i1, i2)
+            print("%s" % (dest_content[start:end]))
+    # print(line_dest)
+    # print(handle_line(line_dest, 0, 72))
+    #
+    # print(result)
+    #
+    # diff = difflib.ndiff(dest_lines, source_lines)
+def handle_line(line_dest, start, end):
+    size = len(line_dest)
+    end = end - 1
+    for i in range(1, size):
+        if line_dest[i - 1] <= start <= line_dest[i]:
+            start = line_dest[i - 1] + 1
+            j = i
+            while not (line_dest[j - 1] <= end and end <= line_dest[j]):
+                j = j + 1
+            if start == line_dest[j - 1] + 1:
+                end = line_dest[j] + 1
+            else:
+                end = line_dest[j - 1] + 1
+            print('start: %s\n end: %s' %(start, end))
+            break
+    return start, end
 
 
 def is_fast_forward(branch_m):
@@ -462,10 +524,11 @@ def main():
             elif args.command == 'unstash':
                 unstash_git()
             elif args.command == 'merge':
-                if not args.files:
-                    print('Missing name of branch to merged')
-                else:
-                    merge_git(args.files[0])
+                # if not args.files:
+                #     print('Missing name of branch to merged')
+                # else:
+                #     merge_git(args.files[0])
+                handle_merge()
             else:
                 print("Git: '" + args.command + "' is not a git command.")
         else:
