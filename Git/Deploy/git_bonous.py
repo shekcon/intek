@@ -1,27 +1,15 @@
 #!/usr/bin/env python3
-
-from os import environ, getcwd, chdir, remove
-from os.path import join, exists, isfile, isdir, relpath, abspath, getmtime
-from os import access, R_OK
+import os
 from argparse import ArgumentParser
 from time import time
-# from get_data_lgit import get_data_object
-from get_data_lgit import get_all_commits, get_pos_track, get_files_hash
-from get_data_lgit import get_tracked_unstracked, get_staged_unstaged
-from get_data_lgit import get_tracked_commit, get_cmit_create_b
-from get_data_lgit import get_info_commit, get_branch_now, get_commit_branch
-from get_data_lgit import get_modified_branch, get_all_branchs
-from utils import read_file, write_file, get_files_direc, remove_empty_dirs
-from utils import rm_head_lgit, hash_sha1
-from update_data_lgit import update_index, update_commit_branch
-from update_data_lgit import update_unstash_files
-from update_data_lgit import update_branch_now, update_files_commit
-from create_data_lgit import create_object, create_commit, create_info_branch
-from create_data_lgit import create_branch, create_snapshot
-from create_data_lgit import create_stash_files, create_structure_lgit
-from format_data_lgit import format_index, format_time, format_date_log
-import print_message
-import difflib
+from sys import exit as exit_program
+from args_lgit import handle_arguments
+from utils import *
+from print_message import *
+import get_data_lgit as lgit_g
+import create_data_lgit as lgit_c
+import update_data_lgit as lgit_u
+import format_data_lgit as lgit_f
 
 
 def merge_git(branch_m):
@@ -34,17 +22,17 @@ def merge_git(branch_m):
           and update commit of current branch
     :param branch_m: branch is merge into current branch
     '''
-    last_cmit_b = get_commit_branch(branch_m)
-    if get_commit_branch() != last_cmit_b:
+    last_cmit_b = lgit_g.get_commit_branch(branch_m)
+    if lgit_g.get_commit_branch() != last_cmit_b:
         if is_fast_forward(branch_m):
             print('<--------------Merge Fast-Forward-------------->')
             revert_commit(branch_m)
-            update_commit_branch(last_cmit_b)
+            lgit_u.update_commit_branch(last_cmit_b)
         else:
-            print('<------------------Merge 3 way----------------->')
-            conflict_f, create_f = check_merge_branch(last_cmit_b)
-            update_files_commit(create_f)
-            handle_conflict(conflict_f, branch_m)
+            print('<------------------Merge Conflict----------------->')
+            # conflict_f, create_f = check_merge_branch(last_cmit_b)
+            # update_files_commit(create_f)
+            # handle_conflict(conflict_f, branch_m)
     else:
         print("Already up to date")
 
@@ -149,8 +137,8 @@ def is_fast_forward(branch_m):
     :param branch_m: other branch merge to current branch
     :return: Boolean
     '''
-    commit_create_b = get_cmit_create_b(branch_m)
-    return commit_create_b and get_commit_branch() <= commit_create_b
+    commit_create_b = lgit_g.get_cmit_create_b(branch_m)
+    return commit_create_b and lgit_g.get_commit_branch() <= commit_create_b
 
 
 def get_branch_commits(branch):
@@ -159,11 +147,11 @@ def get_branch_commits(branch):
     :param branch: branch want to get all of commits
     :return: list
     '''
-    commit = get_commit_branch(branch)
+    commit = lgit_g.get_commit_branch(branch)
     commits_branch = []
     while commit:
         commits_branch.append(commit)
-        _, _, commit, _ = get_info_commit(commit)
+        _, _, commit, _ = lgit_g.get_info_commit(commit)
     return commits_branch
 
 
@@ -177,21 +165,32 @@ def stash_git():
     '''
     modified_files = check_modified_file()
     if modified_files:
-        create_stash_files(modified_files)
-        revert_commit(get_branch_now())
+        lgit_c.create_stash_files(modified_files)
+        revert_commit(lgit_g.get_branch_now())
         print('Stash the current changes')
     else:
         print('Nothing changes at all')
 
 
 def unstash_git():
-    print(update_unstash_files(get_branch_now()))
+    print(lgit_u.update_unstash_files(lgit_g.get_branch_now()))
+
+
+def show_branch():
+    branchs = os.listdir('.lgit/refs/heads/')
+    b_current = lgit_g.get_branch_now()
+    print('%s*%s%s' % (COLORS.GREEN, b_current, COLORS.ENDC))
+    other_b = '\n'.join([b for b in branchs if b not in b_current])
+    if other_b:
+        print(other_b)
 
 
 def branch_git(name):
-    if is_invalid_branch(name):
-        create_branch(name)
-        create_info_branch(name)
+    if not name:
+        show_branch()
+    elif is_invalid_branch(name):
+        lgit_c.create_branch(name)
+        lgit_c.create_info_branch(name)
         print("Create a new branch '%s'" % (name))
     else:
         print("fatal: A branch named '%s' already exists." % (name))
@@ -200,30 +199,32 @@ def branch_git(name):
 def checkout_git(branch):
     if is_invalid_branch(branch):
         print("error:patal '%s' not match any branchs known to git" % (branch))
-    elif branch != get_branch_now():
+    elif branch != lgit_g.get_branch_now():
         modified = check_modified_file()
         if not modified:
             revert_commit(branch)
-            update_branch_now(branch)
+            lgit_u.update_branch_now(branch)
             print("Switched to branch '%s'" % (branch))
         else:
-            print_message.ERROR_CHECKOUT(
+            ERROR_CHECKOUT(
                 [format_path(p, mode='relative') for p in modified])
     else:
         print("Already on '%s'" % (branch))
 
 
 def revert_commit(branch):
-    files_hash = get_files_hash(get_commit_branch(branch=branch))
-    remove_untracked_commit(update_files_commit(files_hash))
+    commit = lgit_g.get_commit_branch(branch=branch)
+    files_hash = lgit_g.get_files_hash(commit)
+    files_update = lgit_u.update_files_commit(files_hash)
+    remove_untracked_commit(files_update)
     overwrite_index(files_hash)
 
 
 def remove_untracked_commit(files_update):
-    tracked, _ = get_tracked_unstracked()
+    tracked, _ = lgit_g.get_tracked_unstracked()
     untracked_file = [f for f in tracked if f not in files_update]
     for file in untracked_file:
-        remove(file)
+        os.remove(file)
         remove_empty_dirs(file)
 
 
@@ -231,9 +232,9 @@ def check_modified_file():
     '''
     return list file is modified at branch now
     '''
-    tracked, _ = get_tracked_unstracked()
-    update_index(tracked, mode='status')
-    staged, unstaged = get_staged_unstaged()
+    tracked, _ = lgit_g.get_tracked_unstracked()
+    lgit_u.update_index(tracked, mode='status')
+    staged, unstaged = lgit_g.get_staged_unstaged()
     return staged + unstaged
 
 
@@ -247,13 +248,14 @@ def overwrite_index(files_hash):
     data = []
     for file in files_hash.keys():
         hash_f = files_hash[file]
-        data.append(format_index(format_time(getmtime(file)),
-                                 hash_f, hash_f, hash_f, file))
+        line = lgit_f.format_index(lgit_f.format_time(os.path.getmtime(file)),
+                                   hash_f, hash_f, hash_f, file)
+        data.append(line)
     write_file(data, '.lgit/index')
 
 
 def is_invalid_branch(branch):
-    branchs = get_all_branchs()
+    branchs = lgit_g.get_all_branchs()
     return branch not in branchs
 
 
@@ -261,7 +263,7 @@ def config_git(author):
     write_file(['%s\n' % (author)], file='.lgit/config')
 
 
-def handle_raw_input(files_user, tracked_file=''):
+def handle_raw_input(files_user, tracked_file='', mode=''):
     '''
     Task:
         + Return list valid file is relative with lgit directory
@@ -274,16 +276,21 @@ def handle_raw_input(files_user, tracked_file=''):
     valid_files = []
     for file in files_user:
         path = format_path(file, mode='absolute')
+
         if is_inside_lgit(path):
             path = rm_head_lgit(path)
-            if isdir(path):
-                sub_files = get_files_direc(path)
-                valid_files = valid_files + \
-                    handle_raw_input(sub_files, tracked_file)
+
+            if os.path.isdir(path):
+                sub_files = get_files_direc(path, mode)
+                valid_files = valid_files +\
+                    handle_raw_input(sub_files, tracked_file, mode)
+
             elif path in tracked_file or is_valid_file(path, file):
                 valid_files.append(path)
+
         else:
-            print_message.OUTSIDE_DIRECTORY(file)
+            OUTSIDE_DIRECTORY(file)
+            exit_program()
     return valid_files
 
 
@@ -293,17 +300,19 @@ def is_valid_file(path, file):
         + File do not have permission to read --> Show error
         + Path does not exist --> Show error
     '''
-    if exists(path) and access(path, mode=R_OK):
+    if os.path.exists(path) and os.access(path, mode=os.R_OK):
         return True
-    elif not access(path, mode=R_OK):
-        print_message.PERMISSION_DENIED_READ(file)
+    elif not os.path.exists(path):
+        NOT_MATCH_FILE(file)
+    elif not os.access(path, mode=os.R_OK):
+        PERMISSION_DENIED_READ(file)
     else:
-        print_message.NOT_MATCH_FILE(file)
-    return False
+        return False
+    exit_program()
 
 
 def is_inside_lgit(path):
-    return getcwd() in path
+    return os.getcwd() in path
 
 
 def add_git(files_add):
@@ -312,44 +321,46 @@ def add_git(files_add):
         + Add untrack file or update unstaged file in index file
         + Store a copy of the file content in the lgit database
     '''
-    files_new = handle_raw_input(files_add)
+    files_new = handle_raw_input(files_add, mode='add')
     if files_new:
-        update_index(files_new, mode='add')
-        create_object(files_new)
-    elif not files_add:
-        print_message.NOTHING_TO_ADDED()
+        lgit_u.update_index(files_new, mode='add')
+        lgit_c.create_object(files_new)
 
 
 def status_git():
-    tracked, _ = get_tracked_unstracked()
-    update_index(tracked, mode='status')
-    show_status([f for f in tracked if not exists(f)])
+    tracked, _ = lgit_g.get_tracked_unstracked()
+    lgit_u.update_index(tracked, mode='status')
+    show_status(get_files_deleted(tracked))
+
+
+def get_files_deleted(tracked_file):
+    return [file for file in tracked_file if not os.path.exists(file)]
 
 
 def show_status(deleted_files=''):
-    _, untracked = get_tracked_unstracked()
-    staged, unstaged = get_staged_unstaged()
+    _, untracked = lgit_g.get_tracked_unstracked()
+    staged, unstaged = lgit_g.get_staged_unstaged()
     staged = [f for f in staged if f not in deleted_files]
     unstaged = [f for f in unstaged if f not in deleted_files]
-    print_message.BRANCH_NOW(get_branch_now())
-    if not get_all_commits():
-        print_message.NO_COMMITS_YET()
+    BRANCH_NOW(lgit_g.get_branch_now())
+    if not os.listdir('.lgit/commits'):
+        NO_COMMITS_YET()
     if staged:
-        print_message.READY_COMMITTED(
+        READY_COMMITTED(
             [format_path(p, mode='relative') for p in staged])
     if unstaged:
-        print_message.TRACKED_MODIFIED(
+        TRACKED_MODIFIED(
             [format_path(p, mode='relative') for p in unstaged])
     if deleted_files:
-        print_message.TRACKED_DELETED(
+        TRACKED_DELETED(
             [format_path(p, mode='relative') for p in deleted_files])
     if untracked:
-        print_message.UNTRACKED_FILE(
+        UNTRACKED_FILE(
             [format_path(p, mode='relative') for p in untracked])
-    if not get_all_commits() and not staged and untracked:
-        print_message.NO_ADDED_BUT_UNTRACKED()
+    if not os.listdir('.lgit/commits') and not staged and untracked:
+        NO_ADDED_BUT_UNTRACKED()
     elif not staged:
-        print_message.NO_ADDED_TO_COMMIT()
+        NO_ADDED_TO_COMMIT()
 
 
 def commit_git(message):
@@ -360,34 +371,34 @@ def commit_git(message):
         + Create name file is time commit in snapshots directory
         + Nothing added to commit then show status
     '''
-    tracked_files, _ = get_tracked_unstracked()
-    staged_files, _ = get_staged_unstaged()
+    tracked_files, _ = lgit_g.get_tracked_unstracked()
+    staged_files, _ = lgit_g.get_staged_unstaged()
     if staged_files:
-        update_index(tracked_files, mode='commit')
-        time_commit = format_time(time(), second=False)
-        create_commit(message, time_commit)
-        create_snapshot(join('.lgit/snapshots', time_commit))
-        update_commit_branch(time_commit)
+        lgit_u.update_index(tracked_files, mode='commit')
+        time_commit = lgit_f.format_time(time(), second=False)
+        lgit_c.create_commit(message, time_commit)
+        lgit_c.create_snapshot('.lgit/snapshots/%s' % (time_commit))
+        lgit_u.update_commit_branch(time_commit)
     else:
         show_status()
 
 
 def log_git():
-    commit = get_commit_branch()
+    commit = lgit_g.get_commit_branch()
     show_log(commit)
 
 
 def show_log(commit):
     if commit:
-        time_commit, author, p_commit, message = get_info_commit(commit)
-        date = format_date_log(time_commit)
-        print("commit %s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
-              (commit, author, date, message))
+        time_commit, author, p_commit, message = lgit_g.get_info_commit(commit)
+        date = lgit_f.format_date_log(time_commit)
+        print("%scommit %s%s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
+              (COLORS.RED, commit, COLORS.ENDC, author, date, message))
         show_log(p_commit)
 
 
 def ls_files_git():
-    tracked_file, _ = get_tracked_unstracked()
+    tracked_file, _ = lgit_g.get_tracked_unstracked()
     files = get_trackfile_cwd(tracked_file)
     if files:
         print("\n".join(sorted(files, key=str)))
@@ -414,26 +425,38 @@ def rm_git(files):
     :param files: files are removed
     :return: None
     '''
-    tracked, _ = get_tracked_unstracked()
+    tracked, _ = lgit_g.get_tracked_unstracked()
     files_new = handle_raw_input(files, tracked)
     if files_new:
         data_index = read_file(file='.lgit/index')
-        location = get_pos_track(files_new)
+        location = lgit_g.get_pos_track(files_new)
         for file in files_new:
             line = location.get(file, -1)
-            if exists(file):
-                remove(file)
+            if os.path.exists(file):
+                os.remove(file)
                 remove_empty_dirs(file)
             data_index[line] = ""
         write_file(data_index, file='.lgit/index')
 
 
+def handle_init_dest(dest):
+    if dest:
+        if os.path.exists(dest):
+            print('fatal: cannot mkdir %s: File exists' % (dest))
+            exit_program()
+        else:
+            os.makedirs(dest)
+            os.chdir(dest)
+
+
 def init_git():
     direcs, files = check_strucsture_lgit()
-    create_structure_lgit(direcs, files)
+    lgit_c.create_structure_lgit(direcs, files)
     setup_lgit()
     if len(direcs) + len(files) < 10:
-        print('Git repository already initialized.')
+        print('Lgit repository already initialized.')
+    else:
+        print('Initialized empty Lgit repository in %s/.lgit/' % (os.getcwd()))
 
 
 def check_strucsture_lgit():
@@ -442,95 +465,69 @@ def check_strucsture_lgit():
               '.lgit/snapshots', '.lgit/refs/heads')
     files = ('.lgit/index', '.lgit/config', '.lgit/info/master',
              '.lgit/refs/heads/master', '.lgit/HEAD')
-    init_d = [d for d in direcs if not isdir(d)]
-    init_f = [f for f in files if not isfile(f)]
+    init_d = [d for d in direcs if not os.path.isdir(d)]
+    init_f = [f for f in files if not os.path.isfile(f)]
     return init_d, init_f
 
 
 def setup_lgit():
-    config_git(author=environ.get('LOGNAME'))
+    if not read_file('.lgit/config'):
+        config_git(author=os.environ.get('LOGNAME'))
     if not read_file('.lgit/HEAD'):
         write_file(['ref: refs/heads/master'], '.lgit/HEAD')
     if not read_file('.lgit/info/master'):
-        write_file(['%s\n' % (format_time(time(), second=False))],
+        write_file(['%s\n' % (lgit_f.format_time(time(), second=False))],
                    '.lgit/info/master')
 
 
 def find_parent_git():
     global cwd_path
-    cwd_path = getcwd()
-    while getcwd() != "/":
-        if exists('.lgit/'):
+    cwd_path = os.getcwd()
+    while os.getcwd() != "/":
+        if os.path.exists('.lgit/'):
             return True
-        chdir('../')
+        os.chdir('../')
     return False
 
 
 def format_path(path, mode):
     if mode == 'absolute':
-        return abspath(join(cwd_path, path))
+        return os.path.abspath('%s/%s' % (cwd_path, path))
     elif mode == 'relative':
-        return relpath(join(getcwd(), path), start=cwd_path)
-
-
-def get_args():
-    parser = ArgumentParser(prog="lgit")
-    parser.add_argument('command', help="command options")
-    parser.add_argument('files', nargs="*",
-                        help=" Add file contents to the index")
-    parser.add_argument('-m', '--message',
-                        help="description about what you do")
-    parser.add_argument('--author', help="set author for commit",)
-    return parser.parse_args()
+        return os.path.relpath('%s/%s' % (os.getcwd(), path), start=cwd_path)
 
 
 def main():
-    args = get_args()
+    args = handle_arguments()
     try:
         if args.command == 'init':
+            handle_init_dest(args.dest)
             init_git()
         elif find_parent_git():
             if args.command == 'add':
-                add_git(args.files)
+                add_git(args.file)
             elif args.command == 'status':
                 status_git()
             elif args.command == 'commit':
                 commit_git(args.message)
             elif args.command == 'config':
-                config_git(author=args.author)
+                config_git(args.author)
             elif args.command == 'ls-files':
                 ls_files_git()
             elif args.command == 'log':
                 log_git()
             elif args.command == 'rm':
-                if args.files:
-                    rm_git(args.files)
-                else:
-                    print('Missing file to removed')
+                rm_git(args.file)
             elif args.command == 'checkout':
-                if len(args.files) == 1:
-                    checkout_git(args.files[0])
-                elif len(args.files) > 1:
-                    print("invalid argument commit passed into checkout")
-                else:
-                    print("missing argument commit to checkout")
+                checkout_git(args.branch)
             elif args.command == 'branch':
-                if not args.files:
-                    print('*%s' % (get_branch_now()))
-                else:
-                    branch_git(args.files[0])
+                branch_git(args.name)
             elif args.command == 'stash':
                 stash_git()
             elif args.command == 'unstash':
                 unstash_git()
             elif args.command == 'merge':
-                # if not args.files:
-                #     print('Missing name of branch to merged')
-                # else:
-                #     merge_git(args.files[0])
-                handle_merge()
-            else:
-                print("Git: '" + args.command + "' is not a git command.")
+                merge_git(args.branch)
         else:
             print('fatal: not a git repository (or any \
 of the parent directories)')

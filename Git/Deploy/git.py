@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-from os import mkdir, environ, scandir, getcwd, chdir, listdir, rmdir, remove
-from os.path import join, getmtime, exists, isfile, isdir, relpath, abspath
-from os.path import split
+import os
 from datetime import datetime
 from argparse import ArgumentParser
 from time import time, mktime, strftime, localtime
@@ -79,11 +77,11 @@ def create_object(files_add):
     for path in files_add:
         hash_f = hash_sha1(path)
         direc_obj, file_obj = split_dir_file(hash_f)
-        direc_obj = join('.lgit/objects', direc_obj)
-        if not exists(direc_obj):
-            mkdir(direc_obj)
-        file_obj = join(direc_obj, file_obj)
-        if not exists(file_obj):
+        direc_obj = os.path.join('.lgit/objects', direc_obj)
+        if not os.path.exists(direc_obj):
+            os.mkdir(direc_obj)
+        file_obj = os.path.join(direc_obj, file_obj)
+        if not os.path.exists(file_obj):
             write_file(read_file(path, mode='rb'), file_obj, mode='wb')
 
 
@@ -97,12 +95,12 @@ def handle_raw_input(files):
     valid_files = []
     for f in files:
         path = format_path(f, mode='absolute')
-        if getcwd() in path:
-            path = path.replace(getcwd() + "/", "")
-            if isdir(path):
+        if os.getcwd() in path:
+            path = path.replace(os.getcwd() + "/", "")
+            if os.path.isdir(path):
                 sub_file = get_files_direc(path)
                 valid_files = valid_files + sub_file
-            elif exists(path):
+            elif os.path.exists(path):
                 valid_files.append(path)
             else:
                 print("fatal: pathspec '" + f + "' did not match any files")
@@ -136,11 +134,12 @@ def get_files_direc(direc='.'):
     while dir_direc:
         # take directory from src
         try:
-            entry_direc = scandir(dir_direc.pop())
+            entry_direc = os.scandir(dir_direc.pop())
             for e in entry_direc:
                 # store file in data_dir
                 if e.is_file():
-                    path = abspath(e.path).replace(getcwd() + "/", '')
+                    path = os.path.abspath(e.path).replace(
+                        os.getcwd() + "/", '')
                     file_direc.append(path)
                 # store directory in data_dir
                 if e.is_dir() and ".lgit" not in e.path:
@@ -178,7 +177,7 @@ def show_status(tracked_files):
     untracked = get_untracked(tracked_files)
     staged, unstaged = get_staged_unstaged()
     print('On branch master\n')
-    if not listdir('.lgit/commits'):
+    if not os.listdir('.lgit/commits'):
         print("No commits yet\n")
     if staged:
         print("Changes to be committed:\n\
@@ -197,7 +196,7 @@ in working directory)\n")
   (use \"./lgit.py add <file>...\" to include in what will be committed)\n")
         print("\t", '\n\t'.join([format_path(p, mode='relative')
                                  for p in untracked]), sep='', end='\n\n')
-    if not listdir('.lgit/commits') and not staged and untracked:
+    if not os.listdir('.lgit/commits') and not staged and untracked:
         print("nothing added to commit but untracked files\
  present (use \"./lgit.py add\" to track)")
     elif not staged:
@@ -218,7 +217,7 @@ def commit_git(message):
         update_index(tracked_files, mode='commit')
         time_ns = format_time(time(), second=False)
         create_commit(message, time_ns)
-        create_snapshot(join('.lgit/snapshots', time_ns))
+        create_snapshot(os.path.join('.lgit/snapshots', time_ns))
     else:
         show_status(tracked_files)
 
@@ -228,7 +227,7 @@ def create_commit(message, time_ns):
     author = read_file(file='.lgit/config')[0]
     time_commit = time_ns.split('.')[0]
     write_file(["%s%s\n\n%s\n" % (author, time_commit, message)],
-               join('.lgit/commits', time_ns))
+               os.path.join('.lgit/commits', time_ns))
 
 
 def create_snapshot(path):
@@ -277,10 +276,10 @@ def update_index(files, mode, location=''):
         # else override on location of file in index file
         if line != -1:
             data_index[line] = format_index(format_time(
-                getmtime(file)), h_current, h_add, h_commit, file)
+                os.path.getmtime(file)), h_current, h_add, h_commit, file)
         else:
             data_index.append(format_index(format_time(
-                getmtime(file)), h_current, h_add, h_commit, file))
+                os.path.getmtime(file)), h_current, h_add, h_commit, file))
     write_file(data_index, file='.lgit/index')
 
 
@@ -297,7 +296,7 @@ def format_date_log(timestamp):
 
 
 def log_git():
-    for commit in sorted(listdir(".lgit/commits"), key=str, reverse=True):
+    for commit in sorted(os.listdir(".lgit/commits"), key=str, reverse=True):
         time_commit, author, message = get_info_commit(commit)
         date = format_date_log(time_commit)
         print("commit %s\nAuthor: %s\nDate: %s\n\n\t%s\n\n" %
@@ -305,7 +304,7 @@ def log_git():
 
 
 def get_info_commit(commit):
-    data = read_file(join(".lgit/commits", commit))
+    data = read_file(os.path.join(".lgit/commits", commit))
     # format time commit, author, message commit
     return data[1].strip(), data[0].strip(), data[3].strip()
 
@@ -334,8 +333,8 @@ def rm_git(files):
             line = location.get(file, -1)  # get location of file
             # if not in index file print error
             if line != -1:
-                if exists(file):
-                    remove(file)
+                if os.path.exists(file):
+                    os.remove(file)
                     remove_empty_dirs(file)
                 data_index[line] = ""
             else:
@@ -346,37 +345,37 @@ def rm_git(files):
 
 
 def remove_empty_dirs(path):
-    head, _ = split(path)
+    head, _ = os.path.split(path)
     # remove directory if it empty directory
     while head:
-        if listdir(head):
+        if os.listdir(head):
             return
-        rmdir(head)
-        head, _ = split(head)
+        os.rmdir(head)
+        head, _ = os.path.split(head)
 
 
 def init_git():
     direcs = ('.lgit/objects', '.lgit/commits', '.lgit/snapshots')
     files = ('.lgit/index', '.lgit/config')
-    init_d = [d for d in direcs if not isdir(d)]
-    init_f = [f for f in files if not isfile(f)]
-    if not exists('.lgit'):
-        mkdir('.lgit')
-    elif isfile('.lgit'):
+    init_d = [d for d in direcs if not os.path.isdir(d)]
+    init_f = [f for f in files if not os.path.isfile(f)]
+    if not os.path.exists('.lgit'):
+        os.mkdir('.lgit')
+    elif os.path.isfile('.lgit'):
         print('fatal: Invalid gitfile format: .lgit')
         return
     for d in init_d:
-        if isfile(d):
-            print(join(getcwd(), dir) + ": Not a directory")
+        if os.path.isfile(d):
+            print(os.path.join(os.getcwd(), dir) + ": Not a directory")
         else:
-            mkdir(d)
+            os.mkdir(d)
     for f in init_f:
-        if not isdir(f):
+        if not os.path.isdir(f):
             open(f, 'w').close()
         else:
-            print('error: unable to mmap ' + join(getcwd(), f)
+            print('error: unable to mmap ' + os.path.join(os.getcwd(), f)
                   + ' Is a directory')
-    config_author(environ.get('LOGNAME'))
+    config_author(os.environ.get('LOGNAME'))
     if len(init_f) + len(init_d) < 5:
         print('Git repository already initialized.')
 
@@ -387,19 +386,19 @@ def config_author(name):
 
 def find_parent_git():
     global cwd_path
-    cwd_path = getcwd()
-    while getcwd() != "/":
-        if exists('.lgit/'):
+    cwd_path = os.getcwd()
+    while os.getcwd() != "/":
+        if os.path.exists('.lgit/'):
             return True
-        chdir('../')
+        os.chdir('../')
     return False
 
 
 def format_path(path, mode):
     if mode == 'absolute':
-        return abspath(join(cwd_path, path))
+        return os.path.abspath(os.path.join(cwd_path, path))
     elif mode == 'relative':
-        return relpath(join(getcwd(), path), start=cwd_path)
+        return os.path.relpath(os.path.join(os.getcwd(), path), start=cwd_path)
 
 
 def format_time(timestamp, second=True):

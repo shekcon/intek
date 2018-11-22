@@ -1,13 +1,15 @@
-from os.path import join, abspath, split
-from os import rmdir, getcwd, listdir, scandir
+import os
+from sys import exit as exit_program
 from hashlib import sha1
 
 
-def hash_sha1(file):
+def hash_sha1(file, mode='file'):
     '''
     Task: return hash sha1 of file passed
     '''
-    return sha1(b''.join(read_file(file, mode='rb'))).hexdigest()
+    if mode == 'file':
+        return sha1(b''.join(read_file(file, mode='rb'))).hexdigest()
+    return sha1(b''.join([str.encode(f) for f in file])).hexdigest()
 
 
 def split_dir_file(hash_file):
@@ -15,13 +17,13 @@ def split_dir_file(hash_file):
 
 
 def remove_empty_dirs(path):
-    head, _ = split(path)
+    head, _ = os.path.split(path)
     # remove directory if it empty directory
     while head:
-        if listdir(head):
+        if os.listdir(head):
             return
-        rmdir(head)
-        head, _ = split(head)
+        os.rmdir(head)
+        head, _ = os.path.split(head)
 
 
 def read_file(file, mode='r'):
@@ -40,7 +42,7 @@ def write_file(data, file, mode='w'):
         f.writelines(data)
 
 
-def get_files_direc(direc='.'):
+def get_files_direc(direc='.', mode=''):
     '''
     Task: return list file in subdirectory passed and directory passed
     '''
@@ -50,19 +52,22 @@ def get_files_direc(direc='.'):
     while dir_direc:
         # take directory from src
         try:
-            entry_direc = scandir(dir_direc.pop())
+            direc = dir_direc.pop()
+            entry_direc = os.scandir(direc)
             for e in entry_direc:
                 # store file in data_dir
                 if e.is_file():
-                    file_direc.append(rm_head_lgit(abspath(e.path)))
+                    file_direc.append(rm_head_lgit(os.path.abspath(e.path)))
                 # store directory in data_dir
                 if e.is_dir() and ".lgit" not in e.path:
                     dir_direc.append(e.path)
         except PermissionError:
-            # print("permission error ")
-            pass
+            if mode == 'add':
+                print("warning: could not open directory '%s/%s/': "
+                      "Permission denied " % (os.getcwd(), direc))
+                exit_program()
     return file_direc
 
 
 def rm_head_lgit(path):
-    return path.replace(getcwd() + "/", '')
+    return path.replace(os.getcwd() + "/", '')
