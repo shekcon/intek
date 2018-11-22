@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from os import chdir, environ, listdir
 from os.path import exists, join
-from subprocess import check_output, CalledProcessError
+from subprocess import run, CalledProcessError
 
 
 def cd_sh(args):
@@ -61,13 +61,8 @@ def printenv_sh(args):
         print(environ[args[0]])
 
 
-def exc_program(command, args):
-    output = check_output([command] + args)
-    print(output.decode(), end='')
-
-
 def handle_args(args):
-    args = list(filter(None, args.split(' ')))
+    args = args.split()
     if len(args) > 1:
         return args[0], args[1:]
     if not args:
@@ -88,12 +83,12 @@ def handle_check_command(command, args):
     '''
     if exists(command) and (command.startswith('./') or
                             command.startswith('../')):
-        exc_program(command, args)
+        run([command] + [args])
         return True
     if environ.get('PATH', ""):
         for path in environ['PATH'].split(':'):
             if exists(path) and command in listdir(path):
-                exc_program(join(path, command), args)
+                run([join(path, command)] + [args])
                 return True
     return False
 
