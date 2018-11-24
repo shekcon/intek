@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-from os import chdir, environ, listdir
-from os.path import exists, join
-from subprocess import run, CalledProcessError
+from os import chdir, environ, listdir, path
+from subprocess import check_output, CalledProcessError
 
 
 def cd_sh(args):
@@ -44,7 +43,7 @@ def export_sh(args):
 
 def unset_sh(args):
     if not args:
-        print("intek-sh$ unset: not enough arguments")
+        print("intek-sh: unset: not enough arguments")
     elif environ.get(args[0], ''):
         del environ[args[0]]
 
@@ -70,6 +69,11 @@ def handle_args(args):
     return args[0], []
 
 
+def exec_program(command, args):
+    output = check_output([command] + args)
+    print(output.decode(), end='')
+
+
 def handle_check_command(command, args):
     '''
     Task:
@@ -81,14 +85,14 @@ def handle_check_command(command, args):
     :param args: argument for command
     :return: Boolean
     '''
-    if exists(command) and (command.startswith('./') or
-                            command.startswith('../')):
-        run([command] + [args])
+    if path.exists(command) and (command.startswith('./') or
+                                 command.startswith('../')):
+        exec_program(command , args)
         return True
     if environ.get('PATH', ""):
-        for path in environ['PATH'].split(':'):
-            if exists(path) and command in listdir(path):
-                run([join(path, command)] + [args])
+        for path_exc in environ['PATH'].split(':'):
+            if path.exists(path_exc) and command in listdir(path_exc):
+                exec_program(path.join(path_exc, command), args)
                 return True
     return False
 
