@@ -98,6 +98,8 @@ def handle_arguments():
 Maybe you wanted to say 'git add .'?")
         elif args.command == 'rm' and not args.file:
             show_help_subcommand(parser, 'rm')
+        elif args.command == 'merge' and not args.branch:
+            print("fatal: No remote for the current branch.")
         else:
             return args
     exit()

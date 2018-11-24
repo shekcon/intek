@@ -10,6 +10,7 @@ import get_data_lgit as lgit_g
 import create_data_lgit as lgit_c
 import update_data_lgit as lgit_u
 import format_data_lgit as lgit_f
+import difflib
 
 
 def merge_git(branch_m):
@@ -22,6 +23,7 @@ def merge_git(branch_m):
           and update commit of current branch
     :param branch_m: branch is merge into current branch
     '''
+    handle_merge()
     last_cmit_b = lgit_g.get_commit_branch(branch_m)
     if lgit_g.get_commit_branch() != last_cmit_b:
         if is_fast_forward(branch_m):
@@ -71,48 +73,65 @@ def merge_git(branch_m):
 
 
 def handle_merge():
-    dest_content = ''.join(read_file('master'))
+    compare_origin('origin', 'master')
+    compare_origin('origin', 'branch')
+
+
+
+def compare_origin(origin, other):
+    dest_content = ''.join(read_file(origin))
+    source_content = ''.join(read_file(other))
 
     line_dest = [-1]
     for index, i in enumerate(dest_content):
         if i == '\n':
             line_dest.append(index)
-    print(line_dest)
 
-    line_source = [-1]
-    for index, i in enumerate(line_source):
-        if i == '\n':
-            line_source.append(index)
 
-    source_content = ''.join(read_file('branch'))
-    # source_content = ''.join(read_file('master'))
-    # dest_content = ''.join(read_file('branch'))
     match = difflib.SequenceMatcher(None, dest_content, source_content)
     direction = match.get_opcodes()
-    print(direction)
+
+
+    merge_file = []
     for tag, i1, i2, j1, j2 in direction:
         if tag == 'equal':
-            print(tag, "\n%s\n%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            print('%s\n%s\n%s' % (
+                tag, dest_content[i1:i2], source_content[j1:j2]))
             start, end = handle_line(line_dest, i1, i2)
-            print("%s" % (dest_content[start:end]))
+            merge_file.append(('equal', start, end))
         if tag == 'insert':
-            print(tag, "\n%s%s" % (dest_content[i1:i2], source_content[j1:j2]))
-            start, end = handle_line(line_source, j1, j2)
-            print("%s" % (source_content[start:end]))
+            print('%s\n%s\n%s' % (
+                tag, dest_content[i1:i2], source_content[j1:j2]))
+            start, end = handle_line(line_dest, i1, i2)
+            merge_file.append(('insert', start, end))
         elif tag == 'replace':
-            print(tag, "\n%s%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            print('%s\n%s\n%s' % (
+                tag, dest_content[i1:i2], source_content[j1:j2]))
             start, end = handle_line(line_dest, i1, i2)
-            print("%s" % (dest_content[start:end]))
+            merge_file.append(('replace', start, end))
         elif tag == 'delete':
-            print(tag, "\n%s%s" % (dest_content[i1:i2], source_content[j1:j2]))
+            print('%s\n%s\n%s' % (
+            tag, dest_content[i1:i2], source_content[j1:j2]))
             start, end = handle_line(line_dest, i1, i2)
-            print("%s" % (dest_content[start:end]))
-    # print(line_dest)
-    # print(handle_line(line_dest, 0, 72))
-    #
-    # print(result)
-    #
-    # diff = difflib.ndiff(dest_lines, source_lines)
+            merge_file.append(('delele', start, end))
+    print(merge_file)
+    status_file = {'equal':[], 'insert':[], 'replace': [], 'delete': []}
+    for tag, start, end in merge_file:
+        if  tag == 'equal' and (start, end) not in status_file['equal']:
+            status_file['equal'].append((start, end))
+        if  tag == 'insert' and (start, end) not in status_file['insert']:
+            status_file['insert'].append((start, end))
+        if  tag == 'replace' and (start, end) not in status_file['replace']:
+            status_file['replace'].append((start, end))
+        if  tag == 'delete' and (start, end) not in status_file['delete']:
+            status_file['delete'].append((start, end))
+    equal_origin = []
+    for line in status_file['equal']:
+        if line not in status_file['insert'] + status_file['replace'] + status_file['delete']:
+            equal_origin.append(line)
+    print(equal_origin)
+
+
 def handle_line(line_dest, start, end):
     size = len(line_dest)
     end = end - 1
@@ -123,10 +142,10 @@ def handle_line(line_dest, start, end):
             while not (line_dest[j - 1] <= end and end <= line_dest[j]):
                 j = j + 1
             if start == line_dest[j - 1] + 1:
-                end = line_dest[j] + 1
+                end = j + 1
             else:
-                end = line_dest[j - 1] + 1
-            print('start: %s\n end: %s' %(start, end))
+                end = j
+            start = i - 1
             break
     return start, end
 
