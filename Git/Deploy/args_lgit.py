@@ -74,14 +74,12 @@ def handle_arguments():
         merge.add_argument('branch', nargs='?',
                            help="join branch into current branch")
 
-        commands.add_parser('stash',
-                            usage='./lgit.py stash',
-                            help='Stash the current changes of current '
-                            'working directories')
-        commands.add_parser('unstash',
-                            usage='./lgit.py unstash',
-                            help='Unstash the current changes of current '
-                            'working directories')
+        stash = commands.add_parser('stash',
+                                    usage='./lgit.py stash [<apply>]',
+                                    help='Save the current changes of current '
+                                    'working directory')
+        stash.add_argument('apply', nargs='?',
+                           help='Restore working directory')
         # get arguments from sys.argv
         args = parser.parse_args()
 

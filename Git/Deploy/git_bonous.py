@@ -25,13 +25,12 @@ def merge_git(branch_m):
     last_cmit_b = lgit_g.get_commit_branch(branch_m)
     if lgit_g.get_commit_branch() != last_cmit_b:
         if is_fast_forward(branch_m):
-            print('<--------------Merge Fast-Forward-------------->')
+            print('Merge Fast-Forward----->')
             revert_commit(branch_m)
             lgit_u.update_commit_branch(last_cmit_b)
         else:
-            conflict_f, files_modified = check_merge_branch(last_cmit_b,
-                                                            branch_m)
-            print(files_modified.keys())
+            conflict_f, files_mod = check_merge_branch(last_cmit_b, branch_m)
+            print(files_mod.keys())
             # lgit_u.update_files_commit(files_modified)
             if conflict_f:
                 print('<------------------Conflict----------------->')
@@ -79,7 +78,9 @@ def check_merge_branch(l_commit_b, branch_m):
         # then file left is have conflict or insert
         # from current branch or branch merge
         else:
-            files_conflict[file] = (tracked_f[file], tracked_f_merge[file])
+            files_conflict[file] = (origin_f[file],
+                                    tracked_f[file],
+                                    tracked_f_merge[file])
     return files_conflict, files_modified
 
 
@@ -107,25 +108,27 @@ def get_branch_commits(branch):
     return commits_branch
 
 
-def stash_git():
+def stash_git(aplly):
     '''
-    Task: Stash the current changes
+    Task: Stash the current changes or unstash from last time stash
+        + Is have apply then run unstash
         + Checking is any changes at current branch
         + Have changes then revert to last commit of current branch
         + Don't have change --> Show message
     :return: None
     '''
-    modified_files = check_modified_file()
-    if modified_files:
-        lgit_c.create_stash_files(modified_files)
-        revert_commit(lgit_g.get_branch_now())
-        print('Stash the current changes')
+    if aplly:
+        lgit_u.update_stash()
+        status_git()
     else:
-        print('Nothing changes at all')
-
-
-def unstash_git():
-    print(lgit_u.update_unstash_files(lgit_g.get_branch_now()))
+        modified_files = check_modified_file()
+        if modified_files:
+            lgit_c.create_stash(modified_files,
+                                lgit_f.format_time(time(), second=False))
+            revert_commit(lgit_g.get_branch_now())
+            print('Saved working directory')
+        else:
+            print('Nothing changes at all')
 
 
 def show_branch():
@@ -343,7 +346,12 @@ def commit_git(message):
 
 def log_git():
     commit = lgit_g.get_commit_branch()
-    show_log(commit)
+    if commit:
+        show_log(commit)
+    else:
+        print("fatal: your current branch '%s' "
+              "does not have any commits yet" %
+              (lgit_g.get_branch_now()))
 
 
 def show_log(commit):
@@ -419,7 +427,7 @@ def init_git():
 
 def check_strucsture_lgit():
     direcs = ('.lgit/objects', '.lgit/commits', '.lgit/info',
-              '.lgit/stash/heads', '.lgit/snapshots', '.lgit/refs/heads')
+              '.lgit/refs/stash', '.lgit/snapshots', '.lgit/refs/heads')
     files = ('.lgit/index', '.lgit/config',
              '.lgit/info/master', '.lgit/HEAD')
     init_d = [d for d in direcs if not os.path.isdir(d)]
@@ -450,7 +458,7 @@ def find_parent_git():
 def is_lgit_directory():
     files = os.listdir('.lgit')
     for e in ('commits', 'objects', 'snapshots', 'refs',
-              'info', 'stash', 'index', 'HEAD',):
+              'info', 'index', 'HEAD',):
         if e not in files:
             return False
     return True
@@ -471,7 +479,7 @@ def main():
             init_git()
         elif find_parent_git():
             if (not os.path.exists('.lgit/config') and
-               args.command == 'commit'):
+                    args.command == 'commit'):
                 MISSING_AUTHOR()
                 show_help_subcommand(parser, 'config')
             elif args.command == 'commit' and not args.message:
@@ -505,9 +513,7 @@ def main():
             elif args.command == 'branch':
                 branch_git(args.name)
             elif args.command == 'stash':
-                stash_git()
-            elif args.command == 'unstash':
-                unstash_git()
+                stash_git(args.apply)
             elif args.command == 'merge':
                 merge_git(args.branch)
         else:

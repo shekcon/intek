@@ -74,21 +74,18 @@ def create_structure_lgit(direcs, files):
                   (os.path.join(os.getcwd(), f)))
 
 
-def create_stash_files(modified_file):
+def create_stash(modified_file, time_ns):
     if _is_valid_stash(modified_file):
-        branch_now = lgit_g.get_branch_now()
-        path = '.lgit/stash/heads/%s/index' % (branch_now)
-        write_file(read_file('.lgit/index'), path)
+        create_object(modified_file)
+        data_stash = []
         for file in modified_file:
-            content = read_file(file, mode='rb')
-            path = os.path.join('.lgit/stash/heads/%s/objects' %
-                                (branch_now), file)
-            write_file(content, path, mode='wb')
+            data_stash.append("%s %s\n" % (hash_sha1(file), file))
+        write_file(data_stash, '.lgit/refs/stash/%s' % (time_ns))
 
 
 def _is_valid_stash(files):
     for f in files:
-        if not os.access(f, os.R_OK) and not os.path.exists(f):
+        if not os.access(f, os.R_OK):
             print_message.PERMISSION_DENIED_STASH(f)
             exit_program()
     return True

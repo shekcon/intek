@@ -16,10 +16,13 @@ def get_modified_branch():
     return modified_file
 
 
-def get_files_hash(commit):
-    snapshot = read_file('.lgit/snapshots/%s' % (commit))
+def get_files_hash(commit, mode='commit'):
+    if mode == 'commit':
+        info_cmit = read_file('.lgit/snapshots/%s' % (commit))
+    elif mode == 'stash':
+        info_cmit = read_file('.lgit/refs/stash/%s' % (commit))
     files_hash = {}
-    for line in snapshot:
+    for line in info_cmit:
         hash_f, file = get_info_snap(line)
         files_hash[file] = hash_f
     return files_hash

@@ -111,22 +111,12 @@ def update_branch_now(branch):
     write_file(['ref: refs/heads/%s\n' % (branch)], '.lgit/HEAD')
 
 
-def update_unstash_files(branch):
-    path = '.lgit/stash/heads/%s/index' % (branch)
-    if os.path.exists(path):
-        write_file(read_file(path), '.lgit/index')
-        for file in os.listdir('.lgit/stash/heads/%s/objects' % (branch)):
-            # get content of file
-            file_object = '.lgit/stash/heads/%s/objects/%s' % (branch, file)
-            content = read_file(file_object, mode='rb')
-
-            # if file exists and not have permission to write then remove
-            if os.path.exists(file) and not os.access(file, os.W_OK):
-                os.remove(file)
-            write_file(content, file, mode='wb')
-
-            os.remove(file_object)
-        os.remove(path)
-        return 'Unstaged completed'
+def update_stash():
+    files = os.listdir('.lgit/refs/stash')
+    if files:
+        last_stash = sorted(files, key=str)[-1]
+        files_hash = lgit_g.get_files_hash(last_stash, mode='stash')
+        update_files_commit(files_hash)
+        print('Restore working directory')
     else:
-        return "Nothing to unstaged at all"
+        print("Nothing to unstaged at all")
