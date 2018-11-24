@@ -77,22 +77,30 @@ def handle_merge():
     compare_origin('origin', 'branch')
 
 
+def set_map_line(dest_content):
+    line_dest = [-1]
+    for index, i in enumerate(dest_content):
+        if i == '\n':
+            line_dest.append(index)
+    if dest_content[-1] != '\n':
+        line_dest.append(len(dest_content) - 1)
+    return line_dest
+
 
 def compare_origin(origin, other):
     dest_content = ''.join(read_file(origin))
     source_content = ''.join(read_file(other))
 
-    line_dest = [-1]
-    for index, i in enumerate(dest_content):
-        if i == '\n':
-            line_dest.append(index)
+    line_dest = set_map_line(dest_content)
+    line_src = set_map_line(source_content)
+    print(line_dest)
 
 
     match = difflib.SequenceMatcher(None, dest_content, source_content)
     direction = match.get_opcodes()
 
-
     merge_file = []
+    print(direction)
     for tag, i1, i2, j1, j2 in direction:
         if tag == 'equal':
             print('%s\n%s\n%s' % (
@@ -134,20 +142,30 @@ def compare_origin(origin, other):
 
 def handle_line(line_dest, start, end):
     size = len(line_dest)
-    end = end - 1
+    end_l = end - 1
+    start_l = start
     for i in range(1, size):
-        if line_dest[i - 1] <= start <= line_dest[i]:
-            start = line_dest[i - 1] + 1
-            j = i
-            while not (line_dest[j - 1] <= end and end <= line_dest[j]):
-                j = j + 1
-            if start == line_dest[j - 1] + 1:
-                end = j + 1
+        if line_dest[i - 1] <= start_l <= line_dest[i]:
+            if start_l == line_dest[i]:
+                start_l = line_dest[i] + 1
             else:
-                end = j
-            start = i - 1
+                start_l = line_dest[i - 1] + 1
+            j = i
+            while not (line_dest[j - 1] <= end_l and end_l <= line_dest[j]):
+                j = j + 1
+            if start_l == line_dest[j - 1] + 1:
+                end_l = j
+            else:
+                end_l = j - 1
+
+            if start_l == line_dest[i]:
+                start_l = i
+            else:
+                start_l = i - 1
+            if start == end:
+                end_l = start_l
             break
-    return start, end
+    return start_l, end_l
 
 
 def is_fast_forward(branch_m):
