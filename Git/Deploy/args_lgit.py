@@ -6,17 +6,16 @@ def handle_arguments():
     if len(argv) > 1 and is_invalid_command():
         print("lgit: '%s' is not a lgit command. See './lgit.py --help'." %
               (argv[1]))
-        exit()
     else:
         # declare information what command is used
         # and description summary each purpose's command
         parser = ArgumentParser(
             prog='lgit', usage='./lgit.py <command> [optional] [<arg>]',
             description="Lgit is a lightweight version of git")
-        commands = parser.add_subparsers(title='There are common '
-                                         'Git commands used',
+        commands = parser.add_subparsers(title='There are common ',
+                                        description='Git commands used',
+                                         prog = 'lgit',
                                          dest='command', metavar="command")
-
         init = commands.add_parser('init',
                                    usage='usage: ./lgit.py init [<directory>]',
                                    help='Create an empty Git repository'
@@ -66,13 +65,14 @@ def handle_arguments():
                                        usage='./lgit.py checkout <branch>',
                                        help='Switch branches or restore '
                                        'working tree files')
-        checkout.add_argument('branch', help="switched to branch")
+        checkout.add_argument('branch', nargs='?', help="switched to branch")
 
         merge = commands.add_parser('merge',
                                     usage='./lgit.py merge <branch>',
                                     help='Join two or more development'
                                     ' histories together')
-        merge.add_argument('branch', help="join branch into current branch")
+        merge.add_argument('branch', nargs='?',
+                           help="join branch into current branch")
 
         commands.add_parser('stash',
                             usage='./lgit.py stash',
@@ -89,17 +89,8 @@ def handle_arguments():
         # invalid --> show help
         if not args.command:
             parser.print_help()
-        if args.command == 'commit' and not args.message:
-            show_help_subcommand(parser, 'commit')
-        elif args.command == 'config' and not args.author:
-            show_help_subcommand(parser, 'config')
-        elif args.command == 'add' and not args.file:
-            print("Nothing specified, nothing added.\n\
-Maybe you wanted to say 'git add .'?")
-        elif args.command == 'rm' and not args.file:
-            show_help_subcommand(parser, 'rm')
         else:
-            return args
+            return args, parser
     exit()
 
 
