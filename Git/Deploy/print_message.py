@@ -23,14 +23,22 @@ def READY_COMMITTED(paths):
            '\n\t modified: '.join(paths), COLORS.ENDC), end='\n\n')
 
 
-def TRACKED_MODIFIED(paths):
+def TRACKED_MODIFIED(modified, deleted):
     print("Changes not staged for commit:\n\
 (use \"./lgit.py add ...\" to update what will be committed)\n\
 (use \"./lgit.py checkout -- ...\" to discard changes \
 in working directory)\n")
-    print("\t %smodified: %s%s" %
-          (COLORS.FAIL,
-           '\n\t modified: '.join(paths), COLORS.ENDC), end='\n\n')
+    if modified:
+        print("\t %smodified: %s%s" %
+              (COLORS.FAIL,
+               '\n\t modified: '.join(modified), COLORS.ENDC),
+              end='\n')
+    if deleted:
+        print("\t %sdeleted: %s%s" %
+              (COLORS.RED,
+               '\n\t deleted: '.join(deleted),
+               COLORS.ENDC), end='\n')
+    print()
 
 
 def UNTRACKED_FILE(paths):
@@ -82,16 +90,16 @@ stash them before you switch branches.\nAborting"
           % ('\n\t'.join(paths)))
 
 
-def TRACKED_DELETED(paths):
-    print("Change to untrack file:\n(use \"./lgit.py rm ...\"\
- to untrack file)\n")
-    print("\t %sdeleted: %s%s" %
-          (COLORS.RED,
-           '\n\t deleted: '.join(paths),
-           COLORS.ENDC), end='\n\n')
-
-
 def PERMISSION_DENIED_STASH(f):
-    print("error: open(\"%s\"): Permission denied\n\
-fatal: Unable to process path %s\n\
-Cannot save the current worktree state" % (f, f))
+    print("error: open(\"%s\"): Permission denied\n"
+          "fatal: Unable to process path %s\n"
+          "Cannot save the current worktree state" % (f, f))
+
+
+def NOFILE_ADDED():
+    print("Nothing specified, nothing added.\n"
+          "Maybe you wanted to say 'git add .'?")
+
+
+def MISSING_AUTHOR():
+    print('Please config author before ./lgit.py commit ...\n')

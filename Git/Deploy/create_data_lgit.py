@@ -5,9 +5,9 @@ from utils import write_file, read_file, hash_sha1, split_dir_file
 from sys import exit as exit_program
 
 
-def create_branch(name):
+def create_branch(name, commit):
     os.makedirs('.lgit/stash/heads/%s/objects' % (name))
-    write_file(['%s\n' % (lgit_g.get_commit_branch())],
+    write_file(['%s\n' % (commit)],
                '.lgit/refs/heads/%s' % (name))
 
 
@@ -88,7 +88,7 @@ def create_stash_files(modified_file):
 
 def _is_valid_stash(files):
     for f in files:
-        if not os.access(f, os.R_OK):
+        if not os.access(f, os.R_OK) and not os.path.exists(f):
             print_message.PERMISSION_DENIED_STASH(f)
             exit_program()
     return True

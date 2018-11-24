@@ -96,8 +96,10 @@ def get_branch_now():
 def get_commit_branch(branch=''):
     if not branch:
         branch = get_branch_now()
-    result = read_file('.lgit/refs/heads/%s' % (branch))
-    return result[0].strip() if result else ''
+    path = '.lgit/refs/heads/%s' % (branch)
+    if not os.path.exists(path):
+        return ''
+    return read_file(path)[0].strip()
 
 
 def get_info_commit(commit):
