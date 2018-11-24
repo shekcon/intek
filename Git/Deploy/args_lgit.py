@@ -13,8 +13,8 @@ def handle_arguments():
             prog='lgit', usage='./lgit.py <command> [optional] [<arg>]',
             description="Lgit is a lightweight version of git")
         commands = parser.add_subparsers(title='There are common ',
-                                        description='Git commands used',
-                                         prog = 'lgit',
+                                         description='Git commands used',
+                                         prog='lgit',
                                          dest='command', metavar="command")
         init = commands.add_parser('init',
                                    usage='usage: ./lgit.py init [<directory>]',

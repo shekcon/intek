@@ -29,7 +29,8 @@ def merge_git(branch_m):
             revert_commit(branch_m)
             lgit_u.update_commit_branch(last_cmit_b)
         else:
-            conflict_f, files_modified = check_merge_branch(last_cmit_b, branch_m)
+            conflict_f, files_modified = check_merge_branch(last_cmit_b,
+                                                            branch_m)
             print(files_modified.keys())
             # lgit_u.update_files_commit(files_modified)
             if conflict_f:
@@ -152,7 +153,8 @@ def branch_git(name):
 
 def checkout_git(branch):
     if is_invalid_branch(branch):
-        print("error: patal '%s' not match any branchs known to git" % (branch))
+        print("error: patal '%s' not match any branchs known to git" %
+              (branch))
     elif branch != lgit_g.get_branch_now():
         modified = check_modified_file()
         if not modified:
@@ -164,6 +166,7 @@ def checkout_git(branch):
                 [format_path(p, mode='relative') for p in modified])
     else:
         print("Already on '%s'" % (branch))
+
 
 def is_have_branch():
     return not lgit_g.get_commit_branch()
@@ -468,7 +471,7 @@ def main():
             init_git()
         elif find_parent_git():
             if (not os.path.exists('.lgit/config') and
-                args.command == 'commit'):
+               args.command == 'commit'):
                 MISSING_AUTHOR()
                 show_help_subcommand(parser, 'config')
             elif args.command == 'commit' and not args.message:
