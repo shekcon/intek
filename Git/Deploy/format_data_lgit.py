@@ -28,5 +28,5 @@ def format_index(timestamp, current, add, commit, path):
 
 
 def format_conflict(data_rec, data_mer, branch_m):
-    return '<<<<<<<< %s\n%s======== %s\n%s' % (get_branch_now(), data_rec,
-                                               branch_m, data_mer)
+    return '<<<<<<<<<<< %s\n%s=============\n%s>>>>>>>>>>>> %s\n' % \
+           (get_branch_now(), data_rec, data_mer, branch_m)
