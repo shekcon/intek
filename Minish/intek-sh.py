@@ -34,7 +34,10 @@ def export_sh(args):
     else:
         for env in args:
             if "=" in env:
-                name_key, value_key = env.split('=')
+                index = env.index('=')
+                name_key = env[:index]
+                value_key = env[index + 1:]
+                print(name_key, value_key)
             else:
                 name_key = env
                 value_key = ''
@@ -44,8 +47,12 @@ def export_sh(args):
 def unset_sh(args):
     if not args:
         print("intek-sh: unset: not enough arguments")
-    elif environ.get(args[0], ''):
-        del environ[args[0]]
+    else:
+        for env_unset in args:
+            try:
+                del environ[env_unset]
+            except KeyError:
+                pass
 
 
 def print_all_env():
@@ -87,7 +94,7 @@ def handle_check_command(command, args):
     '''
     if path.exists(command) and (command.startswith('./') or
                                  command.startswith('../')):
-        exec_program(command , args)
+        exec_program(command, args)
         return True
     if environ.get('PATH', ""):
         for path_exc in environ['PATH'].split(':'):
