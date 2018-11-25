@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-from argparse import ArgumentParser
 from time import time
 from sys import exit as exit_program
 from args_lgit import handle_arguments, show_help_subcommand
@@ -10,6 +9,7 @@ import get_data_lgit as lgit_g
 import create_data_lgit as lgit_c
 import update_data_lgit as lgit_u
 import format_data_lgit as lgit_f
+from difflib import ndiff
 
 
 def merge_git(branch_m):
@@ -25,20 +25,59 @@ def merge_git(branch_m):
     last_cmit_b = lgit_g.get_commit_branch(branch_m)
     if lgit_g.get_commit_branch() != last_cmit_b:
         if is_fast_forward(branch_m):
-            print('Merge Fast-Forward----->')
+            print('Merge Fast-Forward')
             revert_commit(branch_m)
             lgit_u.update_commit_branch(last_cmit_b)
         else:
-            conflict_f, files_mod = check_merge_branch(last_cmit_b, branch_m)
-            print(files_mod.keys())
-            # lgit_u.update_files_commit(files_modified)
-            if conflict_f:
-                print('<------------------Conflict----------------->')
-                print("\t%s" % ('\n\t'.join(conflict_f.keys())))
+            cflict_add_f, files_mod = check_merge_branch(last_cmit_b, branch_m)
+            lgit_u.update_files_commit(files_mod)
+            add_git(files_mod.keys())
+            if cflict_add_f:
+                conflict = handle_conflict_added(cflict_add_f, branch_m)
+                if conflict:
+                    print("Merge auto conflict:\n\
+Fail to merge file:\n\t%s" % ("\n\t".join(conflict)), sep='')
             else:
-                print('Please committed to complete merge branch')
+                print("Merge auto successed")
+                print('Please committed to complete merge')
     else:
         print("Already up to date")
+
+
+def handle_conflict_added(files_clict_add, branch_merge):
+    conflict_files = []
+    for file in files_clict_add.keys():
+        data = files_clict_add[file]
+
+        # get location content
+        direc, h_file = split_dir_file(data[0])
+        origin = '.lgit/objects/%s/%s' % (direc, h_file)
+        direc, h_file = split_dir_file(data[1])
+        master = '.lgit/objects/%s/%s' % (direc, h_file)
+        direc, h_file = split_dir_file(data[2])
+        branch = '.lgit/objects/%s/%s' % (direc, h_file)
+
+        # get conflict or add
+        info = compare_origin(origin, master, branch)
+        data, is_conflict = compare_conflict(info, branch_merge)
+        write_file(data, file)
+        if is_conflict:
+            conflict_files.append(file)
+    return conflict_files
+
+
+def compare_conflict(info, branch_m):
+    data = []
+    is_conflict = False
+    for tag, master, branch in info:
+        if tag == 'equal' or tag == 'changes' or tag == 'insert':
+            data.append(''.join(master))
+        elif tag == 'conflict':
+            data.append(lgit_f.format_conflict(''.join(master),
+                                               ''.join(branch),
+                                               branch_m))
+            is_conflict = True
+    return data, is_conflict
 
 
 def check_merge_branch(l_commit_b, branch_m):
@@ -82,6 +121,116 @@ def check_merge_branch(l_commit_b, branch_m):
                                     tracked_f[file],
                                     tracked_f_merge[file])
     return files_conflict, files_modified
+
+
+def compare_origin(origin, master, branch):
+
+    # readfile from ancentor and branch merge, current branch
+    origin_content = read_file(origin)
+    branch_content = read_file(branch)
+    master_content = read_file(master)
+
+    # compare origin with other branch
+    ori_b = list(ndiff(origin_content, branch_content))
+    ori_m = list(ndiff(origin_content, master_content))
+
+    # remove element have mark question
+    ori_b = remove_mark_compare(ori_b)
+    ori_m = remove_mark_compare(ori_m)
+    merge_file = []
+    i_bra = i_mas = 0
+
+    while i_bra < len(ori_b) and i_mas < len(ori_m):
+        # when both file is same content
+        if ori_b[i_bra][0] == " " and ori_m[i_mas][0] == ' ':
+            merge_file.append(('equal', ori_b[i_bra][2:], ''))
+            i_bra = i_bra + 1
+            i_mas = i_mas + 1
+
+        # when both file change or add more content
+        elif (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '-') or \
+                (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '+') or\
+                (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '-') or \
+                (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '+'):
+            conflict = {'branch': [], 'master': []}
+            # if both change then increase index else do nothing
+            if ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '-':
+                i_bra = i_bra + 1
+                i_mas = i_mas + 1
+            elif (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '-'):
+                i_mas = i_mas + 1
+            elif (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '+'):
+                i_bra = i_bra + 1
+
+            # find add from 2 other branch
+            while i_bra < len(ori_b) and ori_b[i_bra][0] == '+':
+                conflict['branch'].append(ori_b[i_bra][2:])
+                i_bra = i_bra + 1
+            while i_mas < len(ori_m) and ori_m[i_mas][0] == '+':
+                conflict['master'].append(ori_m[i_mas][2:])
+                i_mas = i_mas + 1
+
+            # if notthing mean remove that have then this is \n
+            if not conflict['master']:
+                conflict['master'].append('\n')
+            if not conflict['branch']:
+                conflict['branch'].append('\n')
+
+            # store content have conflict
+            merge_file.append(('conflict',
+                               conflict['master'],
+                               conflict['branch']))
+
+        # when only other file change content
+        elif (ori_b[i_bra][0] == " " and ori_m[i_mas][0] == '-') or \
+                (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == ' '):
+            changes = []
+
+            if ori_m[i_mas][0] == '-':
+                i_mas = i_mas + 1
+                if i_mas < len(ori_m) and ori_m[i_mas][0] == '+':
+                    changes.append(ori_m[i_mas][2:])
+                    i_mas = i_mas + 1
+                i_bra = i_bra + 1
+
+            else:
+                i_bra = i_bra + 1
+                if i_bra < len(ori_b) and ori_b[i_bra][0] == '+':
+                    changes.append(ori_b[i_bra][2:])
+                    i_bra = i_bra + 1
+                i_mas = i_mas + 1
+
+            merge_file.append(('changes', changes, ''))
+
+    # if other file still have content
+    if i_bra < len(ori_b):
+        merge_file.append(('insert', [e[2:] for e in ori_b[i_bra:]], ''))
+    if i_mas < len(ori_m):
+        merge_file.append(('insert', [e[2:] for e in ori_m[i_mas:]], ''))
+
+    # for tag, master, branch in merge_file:
+    #     if tag == 'equal':
+    #         print(''.join(master), end='')
+    #     if tag == 'conflict':
+    #         print('<<<<<<<<<<<< Master')
+    #         print(''.join(master), end='')
+    #         print('===========')
+    #         print(''.join(branch), end='')
+    #         print('>>>>>>>>>>>> Branch')
+    #     if tag == 'changes':
+    #         print(''.join(master), end='')
+    #     if tag == 'insert':
+    #         print(''.join(master), end='')
+
+    return merge_file
+
+
+def remove_mark_compare(ori_b):
+    data = []
+    for i in ori_b:
+        if i[0] != '?':
+            data.append(i)
+    return data
 
 
 def is_fast_forward(branch_m):
