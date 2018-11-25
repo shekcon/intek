@@ -140,73 +140,97 @@ def compare_origin(origin, master, branch):
     merge_file = []
     i_bra = i_mas = 0
 
+    # print(ori_m)
+    # print(ori_b)
+
     while i_bra < len(ori_b) and i_mas < len(ori_m):
-        # when both file is same content
         if ori_b[i_bra][0] == " " and ori_m[i_mas][0] == ' ':
-            merge_file.append(('equal', ori_b[i_bra][2:], ''))
+            merge_file.append(['equal', ori_b[i_bra][2:], ''])
             i_bra = i_bra + 1
             i_mas = i_mas + 1
 
         # when both file change or add more content
-        elif (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '-') or \
-                (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '+') or\
-                (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '-') or \
-                (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '+'):
+        # when other file change content
+        # or at file is same origin but add or delete more content
+        # then mark is like conflict
+        elif ((ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '-') or
+                (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '+') or
+                (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '-') or
+                (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '+')) or \
+             (((ori_b[i_bra][0] == " " and ori_m[i_mas][0] == '-') or
+                (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == ' ')) and
+              ((i_bra + 1 < len(ori_m) and ori_b[i_bra][0] == " " and
+                (ori_b[i_bra + 1][0] == '-' or ori_b[i_bra + 1][0] == '+')) or
+                (i_mas + 1 < len(ori_b) and ori_m[i_mas][0] == ' ' and
+                 (ori_m[i_mas + 1][0] == '-' or ori_m[i_mas + 1][0] == '+')))):
+
             conflict = {'branch': [], 'master': []}
-            # if both change then increase index else do nothing
+            # if both change then increase index
+            # if only other line changes then increase index of it
             if ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '-':
                 i_bra = i_bra + 1
                 i_mas = i_mas + 1
-            elif (ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '-'):
+            elif ori_b[i_bra][0] == "+" and ori_m[i_mas][0] == '-':
                 i_mas = i_mas + 1
-            elif (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '+'):
+            elif ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == '+':
+                i_bra = i_bra + 1
+
+            # add content when other file same at here but modified line after
+            if ori_m[i_mas][0] == ' ':
+                conflict['master'].append(ori_m[i_mas][2:])
+                i_mas = i_mas + 1
+            elif ori_b[i_bra][0] == ' ':
+                conflict['branch'].append(ori_b[i_bra][2:])
                 i_bra = i_bra + 1
 
             # find add from 2 other branch
-            while i_bra < len(ori_b) and ori_b[i_bra][0] == '+':
-                conflict['branch'].append(ori_b[i_bra][2:])
+            while i_bra < len(ori_b) and (ori_b[i_bra][0] == '-' or
+                                          ori_b[i_bra][0] == '+'):
+                if ori_b[i_bra][0] == '+':
+                    conflict['branch'].append(ori_b[i_bra][2:])
                 i_bra = i_bra + 1
-            while i_mas < len(ori_m) and ori_m[i_mas][0] == '+':
-                conflict['master'].append(ori_m[i_mas][2:])
-                i_mas = i_mas + 1
 
-            # if notthing mean remove that have then this is \n
-            if not conflict['master']:
-                conflict['master'].append('\n')
-            if not conflict['branch']:
-                conflict['branch'].append('\n')
+            while i_mas < len(ori_m) and (ori_m[i_mas][0] == '-' or
+                                          ori_m[i_mas][0] == '+'):
+                if ori_m[i_mas][0] == '+':
+                    conflict['master'].append(ori_m[i_mas][2:])
+                i_mas = i_mas + 1
 
             # store content have conflict
-            merge_file.append(('conflict',
+            merge_file.append(['conflict',
                                conflict['master'],
-                               conflict['branch']))
+                               conflict['branch']])
 
-        # when only other file change content
-        elif (ori_b[i_bra][0] == " " and ori_m[i_mas][0] == '-') or \
-                (ori_b[i_bra][0] == "-" and ori_m[i_mas][0] == ' '):
-            changes = []
-
-            if ori_m[i_mas][0] == '-':
+        elif ori_m[i_mas][0] == '-':
+            i_mas = i_mas + 1
+            if i_mas < len(ori_m) and ori_m[i_mas][0] == '+':
+                merge_file.append(['changes', [ori_m[i_mas][2:]], ''])
                 i_mas = i_mas + 1
-                if i_mas < len(ori_m) and ori_m[i_mas][0] == '+':
-                    changes.append(ori_m[i_mas][2:])
-                    i_mas = i_mas + 1
+            i_bra = i_bra + 1
+        else:
+            i_bra = i_bra + 1
+            if i_bra < len(ori_b) and ori_b[i_bra][0] == '+':
+                merge_file.append(['changes', [ori_b[i_bra][2:]], ''])
                 i_bra = i_bra + 1
-
-            else:
-                i_bra = i_bra + 1
-                if i_bra < len(ori_b) and ori_b[i_bra][0] == '+':
-                    changes.append(ori_b[i_bra][2:])
-                    i_bra = i_bra + 1
-                i_mas = i_mas + 1
-
-            merge_file.append(('changes', changes, ''))
+            i_mas = i_mas + 1
 
     # if other file still have content
+    # check if this file have this line but
+    # in other remove this then mark it conflict if last time is conflict is
+    # added in merge file else do nothing
     if i_bra < len(ori_b):
-        merge_file.append(('insert', [e[2:] for e in ori_b[i_bra:]], ''))
+        if ori_b[i_bra] == " " and "- " + ori_b[i_bra][2:] in ori_m\
+           and merge_file and merge_file[-1][0] == 'conflict':
+            merge_file[-1][1] += [e[2:] for e in ori_b[i_bra:]]
+        else:
+            merge_file.append(('insert', [e[2:] for e in ori_b[i_bra:]], ''))
+
     if i_mas < len(ori_m):
-        merge_file.append(('insert', [e[2:] for e in ori_m[i_mas:]], ''))
+        if ori_m[i_mas][0] == " " and "- " + ori_m[i_mas][2:] in ori_b\
+           and merge_file and merge_file[-1][0] == 'conflict':
+            merge_file[-1][1] += [e[2:] for e in ori_m[i_mas:]]
+        else:
+            merge_file.append(('insert', [e[2:] for e in ori_m[i_mas:]], ''))
 
     # for tag, master, branch in merge_file:
     #     if tag == 'equal':
