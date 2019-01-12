@@ -1,7 +1,7 @@
 from utils import read_file, write_file, hash_sha1
 import get_data_lgit as lgit_g
 from format_data_lgit import format_index, format_time
-from git_bonous import os
+from git_bonus import os
 
 
 def update_index(files_update, mode):

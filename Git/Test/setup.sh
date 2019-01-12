@@ -1,5 +1,4 @@
 #!/bin/bash
-cp ~/Intek/Git/Deploy/*.py Test/
-rm Test/git.py
-rm Test/sha1.py
-rm Test/deploy.py
+rm Deploy/ -rfv
+mkdir Deploy
+cp ../Bonus/*.py Deploy/
